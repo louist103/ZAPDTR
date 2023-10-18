@@ -2,7 +2,7 @@
 
 #include "Globals.h"
 #include "Utils/BitConverter.h"
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/Path.h"
 #include "Utils/StringHelper.h"
 #include "WarningHandler.h"
@@ -46,7 +46,7 @@ void ZBackground::ParseBinaryFile(const std::string& inFolder, bool appendOutNam
 	if (appendOutName)
 		filepath = filepath / (outName + "." + GetExternalExtension());
 
-	data = File::ReadAllBytes(filepath.string());
+	data = DiskFile::ReadAllBytes(filepath.string());
 
 	// Add padding.
 	data.insert(data.end(), GetRawDataSize() - data.size(), 0x00);
@@ -150,8 +150,11 @@ std::string ZBackground::GetExternalExtension() const
 
 void ZBackground::Save(const fs::path& outFolder)
 {
-	fs::path filepath = outFolder / (outName + "." + GetExternalExtension());
-	File::WriteAllBytes(filepath.string(), data);
+	if (!Globals::Instance->otrMode)
+	{
+		fs::path filepath = outFolder / (outName + "." + GetExternalExtension());
+		DiskFile::WriteAllBytes(filepath.string(), data);
+	}
 }
 
 std::string ZBackground::GetBodySourceCode() const

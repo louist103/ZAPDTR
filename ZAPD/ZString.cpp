@@ -1,6 +1,6 @@
 #include "ZString.h"
 
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/StringHelper.h"
 #include "ZFile.h"
 
@@ -48,7 +48,7 @@ std::string ZString::GetBodySourceCode() const
 	return StringHelper::Sprintf("\t\"%s\"", strData.data());
 }
 
-std::string ZString::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix)
+std::string ZString::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix, std::set<std::string> *nameSet)
 {
 	return StringHelper::Sprintf("#define %s_macro \"%s\"", name.c_str(), strData.data());
 }

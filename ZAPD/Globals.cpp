@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string_view>
 
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/Path.h"
 #include "WarningHandler.h"
 #include "tinyxml2.h"
@@ -20,33 +20,126 @@ Globals::Globals()
 	profile = false;
 	useLegacyZDList = false;
 	useExternalResources = true;
+	singleThreaded = true;
 	verbosity = VerbosityLevel::VERBOSITY_SILENT;
 	outputPath = Directory::GetCurrentDirectory();
 }
 
 Globals::~Globals()
 {
-	auto& exporters = GetExporterMap();
-
-	for (auto& it : exporters)
+	for (const auto& w : workerData)
 	{
-		delete it.second;
+		delete w.second;
+	}
+	
+	if (rom != nullptr)
+	{
+		delete rom;
 	}
 }
 
-void Globals::AddSegment(int32_t segment, ZFile* file)
+void Globals::AddSegment(int32_t segment, ZFile* file, int workerID)
 {
-	if (std::find(segments.begin(), segments.end(), segment) == segments.end())
-		segments.push_back(segment);
-	if (cfg.segmentRefFiles.find(segment) == cfg.segmentRefFiles.end())
-		cfg.segmentRefFiles[segment] = std::vector<ZFile*>();
+	if (!Globals::Instance->singleThreaded)
+	{
+		auto worker = workerData[workerID];
 
-	cfg.segmentRefFiles[segment].push_back(file);
+		if (std::find(worker->segments.begin(), worker->segments.end(), segment) ==
+		    worker->segments.end())
+			worker->segments.push_back(segment);
+		if (worker->segmentRefFiles.find(segment) == worker->segmentRefFiles.end())
+			worker->segmentRefFiles[segment] = std::vector<ZFile*>();
+
+		worker->segmentRefFiles[segment].push_back(file);
+	}
+	else
+	{
+		if (std::find(segments.begin(), segments.end(), segment) == segments.end())
+			segments.push_back(segment);
+		if (cfg.segmentRefFiles.find(segment) == cfg.segmentRefFiles.end())
+			cfg.segmentRefFiles[segment] = std::vector<ZFile*>();
+
+		cfg.segmentRefFiles[segment].push_back(file);
+	}
 }
 
-bool Globals::HasSegment(int32_t segment)
+bool Globals::HasSegment(int32_t segment, int workerID)
 {
-	return std::find(segments.begin(), segments.end(), segment) != segments.end();
+	if (!Globals::Instance->singleThreaded)
+		return std::find(workerData[workerID]->segments.begin(),
+		                 workerData[workerID]->segments.end(), segment) != workerData[workerID]->segments.end();
+	else
+		return std::find(segments.begin(), segments.end(), segment) != segments.end();
+}
+
+ZFile* Globals::GetSegment(int32_t segment, int workerID)
+{
+	if (!Globals::Instance->singleThreaded)
+	{
+		if (HasSegment(segment, workerID))
+		{
+			int idx = std::find(workerData[workerID]->segments.begin(),
+			                    workerData[workerID]->segments.end(), segment) -
+			          workerData[workerID]->segments.begin();
+			return workerData[workerID]->files[idx];
+		}
+		else
+			return nullptr;
+	}
+	else
+	{
+		if (HasSegment(segment, workerID))
+		{
+			int idx = std::find(segments.begin(), segments.end(), segment) - segments.begin();
+			return files[idx];
+		}
+		else
+			return nullptr;
+	}
+}
+
+std::map<int32_t, std::vector<ZFile*>> Globals::GetSegmentRefFiles(int workerID)
+{
+	if (!Globals::Instance->singleThreaded)
+		return workerData[workerID]->segmentRefFiles;
+	else
+		return cfg.segmentRefFiles;
+}
+
+void Globals::AddFile(ZFile* file, int workerID)
+{
+	if (singleThreaded)
+		files.push_back(file);
+	else
+		workerData[workerID]->files.push_back(file);
+}
+
+void Globals::AddExternalFile(ZFile* file, int workerID)
+{
+	if (singleThreaded)
+		externalFiles.push_back(file);
+	else
+		workerData[workerID]->externalFiles.push_back(file);
+}
+
+void Globals::BuildAssetTexture(const fs::path& pngFilePath, TextureType texType, const fs::path& outPath)
+{
+	std::string name = outPath.stem().string();
+
+	ZTexture tex(nullptr);
+
+	if (name.find("u32") != std::string::npos)
+		tex.dWordAligned = false;
+
+	tex.FromPNG(pngFilePath.string(), texType);
+	std::string cfgPath = StringHelper::Split(pngFilePath.string(), ".")[0] + ".cfg";
+
+	if (DiskFile::Exists(cfgPath))
+		name = DiskFile::ReadAllText(cfgPath);
+
+	std::string src = tex.GetBodySourceCode();
+
+	DiskFile::WriteAllBytes(outPath.string(), src.c_str(), src.size());
 }
 
 std::map<std::string, ExporterSet*>& Globals::GetExporterMap()
@@ -82,8 +175,22 @@ ExporterSet* Globals::GetExporterSet()
 		return nullptr;
 }
 
+std::vector<uint8_t> Globals::GetBaseromFile(std::string fileName)
+{
+	if (fileMode == ZFileMode::ExtractDirectory)
+	{
+		if (StringHelper::Contains(fileName, "baserom/"))
+			fileName = StringHelper::Split(fileName, "baserom/")[1];
+
+		return rom->GetFile(fileName);
+
+	}
+	else
+		return DiskFile::ReadAllBytes(fileName);
+}
+
 bool Globals::GetSegmentedPtrName(segptr_t segAddress, ZFile* currentFile,
-                                  const std::string& expectedType, std::string& declName)
+                                  const std::string& expectedType, std::string& declName, int workerID)
 {
 	if (segAddress == 0)
 	{
@@ -119,9 +226,11 @@ bool Globals::GetSegmentedPtrName(segptr_t segAddress, ZFile* currentFile,
 		if (currentFile->GetDeclarationPtrName(segAddress, expectedType, declName))
 			return true;
 	}
-	else if (HasSegment(segment))
+	else if (HasSegment(segment, workerID))
 	{
-		for (auto file : cfg.segmentRefFiles[segment])
+		// OTRTODO: Multithreading
+		auto segs = GetSegmentRefFiles(workerID);
+		for (auto file : segs[segment])
 		{
 			offset = Seg2Filespace(segAddress, file->baseAddress);
 
@@ -165,7 +274,7 @@ bool Globals::GetSegmentedPtrName(segptr_t segAddress, ZFile* currentFile,
 
 bool Globals::GetSegmentedArrayIndexedName(segptr_t segAddress, size_t elementSize,
                                            ZFile* currentFile, const std::string& expectedType,
-                                           std::string& declName)
+                                           std::string& declName, int workerID)
 {
 	if (segAddress == 0)
 	{
@@ -182,9 +291,11 @@ bool Globals::GetSegmentedArrayIndexedName(segptr_t segAddress, size_t elementSi
 		if (addressFound)
 			return true;
 	}
-	else if (HasSegment(segment))
+	else if (HasSegment(segment, workerID))
 	{
-		for (auto file : cfg.segmentRefFiles[segment])
+		// OTRTODO: Multithreading
+		auto segs = GetSegmentRefFiles(workerID);
+		for (auto file : segs[segment])
 		{
 			if (file->IsSegmentedInFilespaceRange(segAddress))
 			{

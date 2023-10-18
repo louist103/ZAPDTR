@@ -41,7 +41,7 @@ public:
 
 	std::string GetBodySourceCode() const override;
 
-	std::string GetSourceOutputHeader(const std::string& prefix) override;
+	std::string GetSourceOutputHeader([[maybe_unused]] const std::string& prefix);
 
 	std::string GetSourceTypeName() const override;
 	ZResourceType GetResourceType() const override;
@@ -80,6 +80,6 @@ public:
 
 	uint8_t GetLimbCount();
 
-protected:
 	ZLimbTable* limbsTable = nullptr;  // borrowed pointer, do not delete!
+
 };

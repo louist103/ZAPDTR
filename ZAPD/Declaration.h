@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 // TODO: should we drop the `_t` suffix because of UNIX compliance?
 typedef uint32_t segptr_t;
@@ -22,6 +23,8 @@ enum class StaticConfig
 	On
 };
 
+class ZVtx;
+
 class Declaration
 {
 public:
@@ -37,6 +40,8 @@ public:
 	std::string varType;
 	std::string varName;
 	std::string includePath;
+
+	std::vector<ZVtx*> vertexHack;
 
 	bool isExternal = false;
 	bool isArray = false;
@@ -64,6 +69,8 @@ public:
 
 	Declaration(offset_t nAddress, const std::string& nIncludePath, size_t nSize,
 	            const std::string& nVarType, const std::string& nVarName);
+
+	~Declaration();
 
 	bool IsStatic() const;
 

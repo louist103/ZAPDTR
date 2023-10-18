@@ -2,7 +2,7 @@
 
 #include "Globals.h"
 #include "Utils/BitConverter.h"
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/Path.h"
 #include "Utils/StringHelper.h"
 #include "ZFile.h"
@@ -11,6 +11,7 @@ REGISTER_ZFILENODE(Blob, ZBlob);
 
 ZBlob::ZBlob(ZFile* nParent) : ZResource(nParent)
 {
+	genOTRDef = true;
 	RegisterRequiredAttribute("Size");
 }
 
@@ -18,7 +19,7 @@ ZBlob* ZBlob::FromFile(const std::string& filePath)
 {
 	ZBlob* blob = new ZBlob(nullptr);
 	blob->name = StringHelper::Split(Path::GetFileNameWithoutExtension(filePath), ".")[0];
-	blob->blobData = File::ReadAllBytes(filePath);
+	blob->blobData = DiskFile::ReadAllBytes(filePath);
 
 	return blob;
 }
@@ -85,7 +86,8 @@ std::string ZBlob::GetBodySourceCode() const
 
 void ZBlob::Save(const fs::path& outFolder)
 {
-	File::WriteAllBytes((outFolder / (name + ".bin")).string(), blobData);
+	if (!Globals::Instance->otrMode)
+		DiskFile::WriteAllBytes((outFolder / (name + ".bin")).string(), blobData);
 }
 
 bool ZBlob::IsExternalResource() const

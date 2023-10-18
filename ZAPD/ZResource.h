@@ -2,12 +2,13 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include "Declaration.h"
-#include "Utils/BinaryWriter.h"
-#include "Utils/Directory.h"
+#include <Utils/BinaryWriter.h>
+#include <Utils/Directory.h>
 #include "tinyxml2.h"
 
 #define SEGMENT_SCENE 2
@@ -25,14 +26,12 @@ class ZFile;
 enum class ZResourceType
 {
 	Error,
-	ActorList,
 	Animation,
 	Array,
 	AltHeader,
 	Background,
 	Blob,
 	CollisionHeader,
-	CollisionPoly,
 	Cutscene,
 	DisplayList,
 	Limb,
@@ -40,20 +39,24 @@ enum class ZResourceType
 	Mtx,
 	Path,
 	PlayerAnimationData,
-	Pointer,
 	Room,
 	RoomCommand,
 	Scalar,
 	Scene,
 	Skeleton,
 	String,
-	SurfaceType,
 	Symbol,
 	Texture,
 	TextureAnimation,
 	TextureAnimationParams,
 	Vector,
 	Vertex,
+	Text,
+	Audio,
+	ActorList,
+	CollisionPoly,
+	Pointer,
+	SurfaceType,
 };
 
 class ResourceAttribute
@@ -71,6 +74,7 @@ public:
 	ZFile* parent;
 	bool outputDeclaration = true;
 	uint32_t hash = 0;
+	bool genOTRDef = false;
 
 	/**
 	 * Constructor.
@@ -117,7 +121,7 @@ public:
 	[[nodiscard]] virtual std::string GetDefaultName(const std::string& prefix) const;
 
 	virtual void GetSourceOutputCode(const std::string& prefix);
-	virtual std::string GetSourceOutputHeader(const std::string& prefix);
+	virtual std::string GetSourceOutputHeader(const std::string& prefix, std::set<std::string> *nameSet);
 	virtual void CalcHash();
 	/**
 	 * Exports the resource to binary format
@@ -216,7 +220,7 @@ public:
 	ZResourceExporter() = default;
 	virtual ~ZResourceExporter() = default;
 
-	virtual void Save(ZResource* res, fs::path outPath, BinaryWriter* writer) = 0;
+	virtual void Save(ZResource* res, const fs::path& outPath, BinaryWriter* writer) = 0;
 };
 
 offset_t Seg2Filespace(segptr_t segmentedAddress, uint32_t parentBaseAddress);

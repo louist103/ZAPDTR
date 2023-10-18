@@ -12,6 +12,7 @@ REGISTER_ZFILENODE(Collision, ZCollisionHeader);
 
 ZCollisionHeader::ZCollisionHeader(ZFile* nParent) : ZResource(nParent)
 {
+	genOTRDef = true;
 }
 
 ZCollisionHeader::~ZCollisionHeader()
@@ -83,7 +84,7 @@ void ZCollisionHeader::ParseRawData()
 		ZSurfaceType surfaceType(parent);
 		surfaceType.SetRawDataIndex(polyTypeDefSegmentOffset + (i * 8));
 		surfaceType.ParseRawData();
-		polygonTypes.push_back(surfaceType);
+		PolygonTypes.push_back(surfaceType);
 	}
 	// polygonTypes.push_back(
 	//	BitConverter::ToUInt64BE(rawData, polyTypeDefSegmentOffset + (i * 8)));
@@ -141,12 +142,15 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 
 	if (waterBoxes.size() > 0)
 	{
-		for (size_t i = 0; i < waterBoxes.size(); i++)
+		if (!Globals::Instance->otrMode)
 		{
-			declaration +=
-				StringHelper::Sprintf("\t{ %s },", waterBoxes[i].GetBodySourceCode().c_str());
-			if (i + 1 < waterBoxes.size())
-				declaration += "\n";
+			for (size_t i = 0; i < waterBoxes.size(); i++)
+			{
+				declaration +=
+					StringHelper::Sprintf("\t{ %s },", waterBoxes[i].GetBodySourceCode().c_str());
+				if (i + 1 < waterBoxes.size())
+					declaration += "\n";
+			}
 		}
 
 		parent->AddDeclarationArray(
@@ -158,11 +162,15 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 	{
 		declaration.clear();
 
-		for (size_t i = 0; i < polygons.size(); i++)
+		if (!Globals::Instance->otrMode)
 		{
-			declaration += StringHelper::Sprintf("\t%s,", polygons[i].GetBodySourceCode().c_str());
-			if (i + 1 < polygons.size())
-				declaration += "\n";
+			for (size_t i = 0; i < polygons.size(); i++)
+			{
+				declaration +=
+					StringHelper::Sprintf("\t%s,", polygons[i].GetBodySourceCode().c_str());
+				if (i + 1 < polygons.size())
+					declaration += "\n";
+			}
 		}
 
 		parent->AddDeclarationArray(polySegmentOffset, DeclarationAlignment::Align4,
@@ -172,17 +180,17 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 	}
 
 	declaration.clear();
-	for (const auto& polyType : polygonTypes)
+	for (const auto& polyType : PolygonTypes)
 	{
 		declaration += StringHelper::Sprintf("\t%s,", polyType.GetBodySourceCode().c_str());
 	}
 
 	if (polyTypeDefAddress != SEGMENTED_NULL)
 		parent->AddDeclarationArray(polyTypeDefSegmentOffset, DeclarationAlignment::Align4,
-		                            polygonTypes.size() * 8,
-		                            polygonTypes[0].GetSourceTypeName().c_str(),
+		                            PolygonTypes.size() * 8,
+		                            PolygonTypes[0].GetSourceTypeName().c_str(),
 		                            StringHelper::Sprintf("%sSurfaceType", auxName.c_str()),
-		                            polygonTypes.size(), declaration);
+		                            PolygonTypes.size(), declaration);
 
 	declaration.clear();
 
@@ -190,13 +198,16 @@ void ZCollisionHeader::DeclareReferences(const std::string& prefix)
 	{
 		declaration.clear();
 
-		for (size_t i = 0; i < vertices.size(); i++)
+		if (!Globals::Instance->otrMode)
 		{
-			declaration +=
-				StringHelper::Sprintf("\t{ %s },", vertices[i].GetBodySourceCode().c_str());
+			for (size_t i = 0; i < vertices.size(); i++)
+			{
+				declaration +=
+					StringHelper::Sprintf("\t{ %s },", vertices[i].GetBodySourceCode().c_str());
 
-			if (i < vertices.size() - 1)
-				declaration += "\n";
+				if (i < vertices.size() - 1)
+					declaration += "\n";
+			}
 		}
 
 		const auto& first = vertices.front();
@@ -212,30 +223,37 @@ std::string ZCollisionHeader::GetBodySourceCode() const
 {
 	std::string declaration = "";
 
+	if (Globals::Instance->otrMode)
+		return declaration;
+
 	declaration += "\n";
 
 	declaration += StringHelper::Sprintf("\t{ %i, %i, %i },\n", absMinX, absMinY, absMinZ);
 	declaration += StringHelper::Sprintf("\t{ %i, %i, %i },\n", absMaxX, absMaxY, absMaxZ);
 
 	std::string vtxName;
-	Globals::Instance->GetSegmentedPtrName(vtxAddress, parent, "Vec3s", vtxName);
-	declaration += StringHelper::Sprintf("\t%i, %s,\n", numVerts, vtxName.c_str());
+	Globals::Instance->GetSegmentedPtrName(vtxAddress, parent, "Vec3s", vtxName, parent->workerID);
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s,\n", numVerts, vtxName.c_str());
 
 	std::string polyName;
-	Globals::Instance->GetSegmentedPtrName(polyAddress, parent, "CollisionPoly", polyName);
-	declaration += StringHelper::Sprintf("\t%i, %s,\n", numPolygons, polyName.c_str());
+	Globals::Instance->GetSegmentedPtrName(polyAddress, parent, "CollisionPoly", polyName,
+	                                       parent->workerID);
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s,\n", numPolygons, polyName.c_str());
 
 	std::string surfaceName;
-	Globals::Instance->GetSegmentedPtrName(polyTypeDefAddress, parent, "SurfaceType", surfaceName);
+	Globals::Instance->GetSegmentedPtrName(polyTypeDefAddress, parent, "SurfaceType", surfaceName,
+	                                       parent->workerID);
 	declaration += StringHelper::Sprintf("\t%s,\n", surfaceName.c_str());
 
 	std::string camName;
-	Globals::Instance->GetSegmentedPtrName(camDataAddress, parent, "CamData", camName);
+	Globals::Instance->GetSegmentedPtrName(camDataAddress, parent, "CamData", camName,
+	                                       parent->workerID);
 	declaration += StringHelper::Sprintf("\t%s,\n", camName.c_str());
 
 	std::string waterBoxName;
-	Globals::Instance->GetSegmentedPtrName(waterBoxAddress, parent, "WaterBox", waterBoxName);
-	declaration += StringHelper::Sprintf("\t%i, %s\n", numWaterBoxes, waterBoxName.c_str());
+	Globals::Instance->GetSegmentedPtrName(waterBoxAddress, parent, "WaterBox", waterBoxName,
+	                                       parent->workerID);
+	declaration += StringHelper::Sprintf("\t%i,\n\t%s\n", numWaterBoxes, waterBoxName.c_str());
 
 	return declaration;
 }

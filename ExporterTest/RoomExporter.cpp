@@ -1,7 +1,7 @@
 #include "RoomExporter.h"
 #include "CollisionExporter.h"
 #include "Utils/BinaryWriter.h"
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/MemoryStream.h"
 #include "ZRoom/Commands/SetCameraSettings.h"
 #include "ZRoom/Commands/SetCollisionHeader.h"
@@ -20,7 +20,7 @@
 #include "ZRoom/Commands/SetTimeSettings.h"
 #include "ZRoom/Commands/SetWind.h"
 
-void ExporterExample_Room::Save(ZResource* res, fs::path outPath, BinaryWriter* writer)
+void ExporterExample_Room::Save(ZResource* res, const fs::path& outPath, BinaryWriter* writer)
 {
 	ZRoom* room = dynamic_cast<ZRoom*>(res);
 
@@ -367,6 +367,6 @@ void ExporterExample_Room::Save(ZResource* res, fs::path outPath, BinaryWriter* 
 	}
 
 	// writer->Close();
-	// File::WriteAllBytes(StringHelper::Sprintf("%s", res->GetName().c_str()),
+	// DiskFile::WriteAllBytes(StringHelper::Sprintf("%s", res->GetName().c_str()),
 	// memStream->ToVector());
 }

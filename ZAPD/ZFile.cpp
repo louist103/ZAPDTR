@@ -10,7 +10,7 @@
 #include "Utils/BinaryWriter.h"
 #include "Utils/BitConverter.h"
 #include "Utils/Directory.h"
-#include "Utils/File.h"
+#include <Utils/DiskFile.h>
 #include "Utils/MemoryStream.h"
 #include "Utils/Path.h"
 #include "Utils/StringHelper.h"
@@ -41,6 +41,7 @@ ZFile::ZFile()
 	baseAddress = 0;
 	rangeStart = 0x000000000;
 	rangeEnd = 0xFFFFFFFF;
+	workerID = 0;
 }
 
 ZFile::ZFile(const fs::path& nOutPath, const std::string& nName) : ZFile()
@@ -51,7 +52,7 @@ ZFile::ZFile(const fs::path& nOutPath, const std::string& nName) : ZFile()
 }
 
 ZFile::ZFile(ZFileMode nMode, tinyxml2::XMLElement* reader, const fs::path& nBasePath,
-             const fs::path& nOutPath, const std::string& filename, const fs::path& nXmlFilePath)
+             const fs::path& nOutPath, const std::string& filename, const fs::path& nXmlFilePath, int nWorkerID)
 	: ZFile()
 {
 	xmlFilePath = nXmlFilePath;
@@ -66,6 +67,7 @@ ZFile::ZFile(ZFileMode nMode, tinyxml2::XMLElement* reader, const fs::path& nBas
 		outputPath = nOutPath;
 
 	mode = nMode;
+	workerID = nWorkerID;
 
 	ParseXML(reader, filename);
 	if (mode != ZFileMode::ExternalFile)
@@ -126,6 +128,9 @@ void ZFile::ParseXML(tinyxml2::XMLElement* reader, const std::string& filename)
 	if (reader->Attribute("RangeEnd") != nullptr)
 		rangeEnd = StringHelper::StrToL(reader->Attribute("RangeEnd"), 16);
 
+	if (reader->Attribute("Compilable") != nullptr)
+		isCompilable = true;
+
 	if (rangeStart > rangeEnd)
 		HANDLE_ERROR_PROCESS(
 			WarningType::Always,
@@ -167,7 +172,7 @@ void ZFile::ParseXML(tinyxml2::XMLElement* reader, const std::string& filename)
 			}
 		}
 	}
-	Globals::Instance->AddSegment(segment, this);
+	Globals::Instance->AddSegment(segment, this, workerID);
 
 	if (Globals::Instance->verbosity >= VerbosityLevel::VERBOSITY_INFO)
 	{
@@ -181,16 +186,22 @@ void ZFile::ParseXML(tinyxml2::XMLElement* reader, const std::string& filename)
 		}
 	}
 
-	if (mode == ZFileMode::Extract || mode == ZFileMode::ExternalFile)
+	if (mode == ZFileMode::Extract || mode == ZFileMode::ExternalFile || mode == ZFileMode::ExtractDirectory)
 	{
-		if (!File::Exists((basePath / name).string()))
+		if (Globals::Instance->fileMode != ZFileMode::ExtractDirectory)
 		{
-			std::string errorHeader = StringHelper::Sprintf("binary file '%s' does not exist.",
-			                                                (basePath / name).c_str());
-			HANDLE_ERROR_PROCESS(WarningType::Always, errorHeader, "");
+			if (!DiskFile::Exists((basePath / name).string()))
+			{
+				std::string errorHeader = StringHelper::Sprintf("binary file '%s' does not exist.",
+				                                                (basePath / name).c_str());
+				HANDLE_ERROR_PROCESS(WarningType::Always, errorHeader, "");
+			}
 		}
 
-		rawData = File::ReadAllBytes((basePath / name).string());
+		if (Globals::Instance->fileMode == ZFileMode::ExtractDirectory)
+			rawData = Globals::Instance->GetBaseromFile(name);
+		else
+			rawData = Globals::Instance->GetBaseromFile((basePath / name).string());
 
 		if (reader->Attribute("RangeEnd") == nullptr)
 			rangeEnd = rawData.size();
@@ -213,14 +224,12 @@ void ZFile::ParseXML(tinyxml2::XMLElement* reader, const std::string& filename)
 		// Check for repeated attributes.
 		if (offsetXml != nullptr)
 		{
-			std::string offsetStr = StringHelper::Split(offsetXml, "0x")[1];
-			if (!StringHelper::HasOnlyHexDigits(offsetStr))
+			if (!StringHelper::IsValidOffset(std::string_view(offsetXml)))
 			{
 				HANDLE_ERROR(WarningType::InvalidXML,
-				             StringHelper::Sprintf("Invalid offset %s entered", offsetStr.c_str()),
-				             "");
+				             StringHelper::Sprintf("Invalid offset %s entered", offsetXml), "");
 			}
-			rawDataIndex = strtol(offsetStr.c_str(), NULL, 16);
+			rawDataIndex = strtol(offsetXml, NULL, 16);
 
 			if (offsetSet.find(offsetXml) != offsetSet.end())
 			{
@@ -260,16 +269,19 @@ void ZFile::ParseXML(tinyxml2::XMLElement* reader, const std::string& filename)
 			}
 			nameSet.insert(nameXml);
 		}
-
+		
 		std::string nodeName = std::string(child->Name());
 
 		if (nodeMap.find(nodeName) != nodeMap.end())
 		{
 			ZResource* nRes = nodeMap[nodeName](this);
 
-			if (mode == ZFileMode::Extract || mode == ZFileMode::ExternalFile)
-				nRes->ExtractFromXML(child, rawDataIndex);
-
+			if (mode == ZFileMode::Extract || mode == ZFileMode::ExternalFile ||
+			    mode == ZFileMode::ExtractDirectory)
+			{
+				if (!isCompilable)
+					nRes->ExtractFromXML(child, rawDataIndex);
+			}
 			switch (nRes->GetResourceType())
 			{
 			case ZResourceType::Texture:
@@ -372,8 +384,12 @@ void ZFile::ExtractResources()
 	if (exporterSet != nullptr && exporterSet->beginFileFunc != nullptr)
 		exporterSet->beginFileFunc(this);
 
+	int totalMs = 0;
+
 	for (ZResource* res : resources)
 	{
+		auto start = std::chrono::steady_clock::now();
+
 		auto memStreamRes = std::shared_ptr<MemoryStream>(new MemoryStream());
 		BinaryWriter writerRes = BinaryWriter(memStreamRes);
 
@@ -392,11 +408,20 @@ void ZFile::ExtractResources()
 
 		if (exporterSet != nullptr && exporterSet->resSaveFunc != nullptr)
 			exporterSet->resSaveFunc(res, writerRes);
+
+		auto end = std::chrono::steady_clock::now();
+		auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+		totalMs += diff;
+
+		//printf("Res %s in %lims\n", res->GetName().c_str(), diff);
 	}
+
+	//printf("File %s in %lims\n", GetName().c_str(), totalMs);
 
 	if (memStreamFile->GetLength() > 0)
 	{
-		File::WriteAllBytes(StringHelper::Sprintf("%s%s.bin",
+		DiskFile::WriteAllBytes(StringHelper::Sprintf("%s%s.bin",
 		                                          Globals::Instance->outputPath.string().c_str(),
 		                                          GetName().c_str()),
 		                    memStreamFile->ToVector());
@@ -772,10 +797,13 @@ void ZFile::GenerateSourceFiles()
 	if (Globals::Instance->verbosity >= VerbosityLevel::VERBOSITY_INFO)
 		printf("Writing C file: %s\n", outPath.c_str());
 
-	OutputFormatter formatter;
-	formatter.Write(sourceOutput);
+	if (!Globals::Instance->otrMode)
+	{
+		OutputFormatter formatter;
+		formatter.Write(sourceOutput);
 
-	File::WriteAllText(outPath, formatter.GetOutput());
+		DiskFile::WriteAllText(outPath, formatter.GetOutput());
+	}
 
 	GenerateSourceHeaderFiles();
 }
@@ -783,42 +811,76 @@ void ZFile::GenerateSourceFiles()
 void ZFile::GenerateSourceHeaderFiles()
 {
 	OutputFormatter formatter;
+	// Use parent folder and output name as guard as some headers have the same output name
+	std::string guard = xmlFilePath.parent_path().stem().string() + "_" + outName.stem().string();
 
-	std::string guard = StringHelper::ToUpper(outName.stem().string());
-
+	std::transform(guard.begin(), guard.end(), guard.begin(), ::toupper);
 	formatter.Write(
 		StringHelper::Sprintf("#ifndef %s_H\n#define %s_H 1\n\n", guard.c_str(), guard.c_str()));
+	formatter.Write("#include \"align_asset_macro.h\"\n");
 
+	std::set<std::string> nameSet;
 	for (ZResource* res : resources)
 	{
-		std::string resSrc = res->GetSourceOutputHeader("");
-		formatter.Write(resSrc);
-
-		if (resSrc != "")
-			formatter.Write("\n");
+		std::string resSrc = res->GetSourceOutputHeader("", &nameSet);
+		if (!resSrc.empty()) 
+		{
+			formatter.Write(resSrc.front() == '\n' ? resSrc : "\n" + resSrc);
+			formatter.Write(res == resources.back() ? "" : "\n");
+		}
 	}
 
 	for (auto& sym : symbolResources)
 	{
-		formatter.Write(sym.second->GetSourceOutputHeader(""));
+		formatter.Write("\n\n");
+		formatter.Write(sym.second->GetSourceOutputHeader("", &nameSet));
 	}
 
 	formatter.Write(ProcessExterns());
 
-	formatter.Write("#endif\n");
+	formatter.Write(StringHelper::Sprintf("\n#endif // %s_H\n", guard.c_str()));
 
 	fs::path headerFilename = GetSourceOutputFolderPath() / outName.stem().concat(".h");
 
 	if (Globals::Instance->verbosity >= VerbosityLevel::VERBOSITY_INFO)
 		printf("Writing H file: %s\n", headerFilename.c_str());
 
-	File::WriteAllText(headerFilename, formatter.GetOutput());
+	std::string output = formatter.GetOutput();
+
+	if (Globals::Instance->fileMode != ZFileMode::ExtractDirectory)
+		DiskFile::WriteAllText(headerFilename, output);
+	else if (Globals::Instance->sourceOutputPath != "")
+	{
+		std::string xmlPath = xmlFilePath.string();
+		xmlPath = StringHelper::Replace(xmlPath, "\\", "/");
+		auto pathList = StringHelper::Split(xmlPath, "/");
+		std::string outPath = "";
+
+		for (int i = 0; i < 3; i++)
+			outPath += pathList[i] + "/";
+
+		for (int i = 5; i < pathList.size(); i++)
+		{
+			if (i == pathList.size() - 1)
+			{
+				outPath += Path::GetFileNameWithoutExtension(pathList[i]) + "/";
+				outPath += outName.string() + ".h";
+			}
+			else
+				outPath += pathList[i];
+
+			if (i < pathList.size() - 1)
+				outPath += "/";
+		}
+
+		DiskFile::WriteAllText(outPath, output);
+	}
 }
 
 std::string ZFile::GetHeaderInclude() const
 {
 	std::string headers = StringHelper::Sprintf("#include \"%s.h\"\n",
-	                                            (outName.parent_path() / outName.stem()).c_str());
+	                                            (outName.parent_path() / outName.stem()).string().c_str());
 
 	return headers;
 }
@@ -852,7 +914,7 @@ std::string ZFile::GetExternalFileHeaderInclude() const
 			}
 
 			externalFilesIncludes +=
-				StringHelper::Sprintf("#include \"%s.h\"\n", outputFolderPath.c_str());
+				StringHelper::Sprintf("#include \"%s.h\"\n", outputFolderPath.string().c_str());
 		}
 	}
 
@@ -870,10 +932,14 @@ void ZFile::GeneratePlaceholderDeclarations()
 		}
 
 		Declaration* decl = res->DeclareVar(GetName(), "");
-		decl->staticConf = res->GetStaticConf();
-		if (res->GetResourceType() == ZResourceType::Symbol)
+
+		if (decl != nullptr)
 		{
-			decl->staticConf = StaticConfig::Off;
+			decl->staticConf = res->GetStaticConf();
+			if (res->GetResourceType() == ZResourceType::Symbol)
+			{
+				decl->staticConf = StaticConfig::Off;
+			}
 		}
 	}
 }
@@ -994,6 +1060,10 @@ std::string ZFile::ProcessDeclarations()
 							lastItem.second->size += curItem.second->size;
 							lastItem.second->arrayItemCnt += curItem.second->arrayItemCnt;
 							lastItem.second->text += "\n" + curItem.second->text;
+
+							for (auto vtx : curItem.second->vertexHack)
+								lastItem.second->vertexHack.push_back(vtx);
+
 							declarations.erase(curItem.first);
 							declarationKeys.erase(declarationKeys.begin() + i);
 							delete curItem.second;
@@ -1038,18 +1108,21 @@ std::string ZFile::ProcessDeclarations()
 		{
 			if (item.second->isExternal)
 			{
-				// HACK
-				std::string extType;
+				if (!Globals::Instance->otrMode)
+				{
+					// HACK
+					std::string extType;
 
-				if (item.second->varType == "Gfx")
-					extType = "dlist";
-				else if (item.second->varType == "Vtx")
-					extType = "vtx";
+					if (item.second->varType == "Gfx")
+						extType = "dlist";
+					else if (item.second->varType == "Vtx")
+						extType = "vtx";
 
-				auto filepath = outputPath / item.second->varName;
-				File::WriteAllText(
-					StringHelper::Sprintf("%s.%s.inc", filepath.c_str(), extType.c_str()),
-					item.second->text);
+					auto filepath = outputPath / item.second->varName;
+					DiskFile::WriteAllText(
+						StringHelper::Sprintf("%s.%s.inc", filepath.string().c_str(), extType.c_str()),
+						item.second->text);
+				}
 			}
 
 			output += item.second->GetExternalDeclarationStr();
@@ -1079,7 +1152,7 @@ void ZFile::ProcessDeclarationText(Declaration* decl)
 		{
 			std::string vtxName;
 			Globals::Instance->GetSegmentedArrayIndexedName(decl->references[refIndex], 0x10, this,
-			                                                "Vtx", vtxName);
+			                                                "Vtx", vtxName, workerID);
 			decl->text.replace(i, 2, vtxName);
 
 			refIndex++;
@@ -1140,7 +1213,10 @@ std::string ZFile::ProcessTextureIntersections([[maybe_unused]] const std::strin
 			{
 				// Shrink palette so it doesn't overlap
 				currentTex->SetDimensions(offsetDiff / currentTex->GetPixelMultiplyer(), 1);
-				declarations.at(currentOffset)->size = currentTex->GetRawDataSize();
+
+				if (declarations.find(currentOffset) != declarations.end())
+					declarations.at(currentOffset)->size = currentTex->GetRawDataSize();
+
 				currentTex->DeclareVar(GetName(), "");
 			}
 			else
@@ -1155,8 +1231,10 @@ std::string ZFile::ProcessTextureIntersections([[maybe_unused]] const std::strin
 				else
 					texNextName = nextDecl->varName;
 
+#if 0
 				defines += StringHelper::Sprintf("#define %s ((u32)%s + 0x%06X)\n",
 				                                 texNextName.c_str(), texName.c_str(), offsetDiff);
+#endif
 
 				delete declarations[nextOffset];
 				declarations.erase(nextOffset);
@@ -1177,7 +1255,13 @@ void ZFile::HandleUnaccountedData()
 	uint32_t lastSize = 0;
 	std::vector<offset_t> declsAddresses;
 
+	if (Globals::Instance->otrMode)
+		return;
+
 	declsAddresses.reserve(declarations.size());
+	if (Globals::Instance->otrMode)
+		return;
+
 	for (const auto& item : declarations)
 	{
 		declsAddresses.push_back(item.first);
