@@ -26,12 +26,14 @@ class ZFile;
 enum class ZResourceType
 {
 	Error,
+	ActorList,
 	Animation,
 	Array,
 	AltHeader,
 	Background,
 	Blob,
 	CollisionHeader,
+	CollisionPoly,
 	Cutscene,
 	DisplayList,
 	Limb,
@@ -39,24 +41,23 @@ enum class ZResourceType
 	Mtx,
 	Path,
 	PlayerAnimationData,
+	Pointer,
 	Room,
 	RoomCommand,
 	Scalar,
 	Scene,
 	Skeleton,
 	String,
+	SurfaceType,
 	Symbol,
 	Texture,
 	TextureAnimation,
 	TextureAnimationParams,
 	Vector,
 	Vertex,
+	Waterbox,
 	Text,
 	Audio,
-	ActorList,
-	CollisionPoly,
-	Pointer,
-	SurfaceType,
 };
 
 class ResourceAttribute
@@ -83,8 +84,18 @@ public:
 	ZResource(ZFile* nParent);
 	virtual ~ZResource() = default;
 
-	// Parsing from File
-	virtual void ExtractFromXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex);
+	/// <summary>
+	/// Extracts/Parsees data from binary file using an XML to provide the needed metadata.
+	/// </summary>
+	/// <param name="reader">XML Node we wish to parse from.</param>
+	/// <param name="nRawDataIndex">The offset within the binary file we are going to parse from as
+	/// indicated by the "Offset" parameter in the XML.</param>
+	virtual void ExtractWithXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex);
+
+	/// <summary>
+	/// Extracts/Parses the needed data straight from a binary without the use of an XML.
+	/// </summary>
+	/// <param name="nRawDataIndex">The offset within the binary file we wish to parse from.</param>
 	virtual void ExtractFromFile(offset_t nRawDataIndex);
 
 	// Misc

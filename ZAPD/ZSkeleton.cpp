@@ -194,7 +194,7 @@ std::string ZSkeleton::GetSourceTypeName() const
 	case ZSkeletonType::Flex:
 		return "FlexSkeletonHeader";
 	case ZSkeletonType::Curve:
-		return "SkelCurveLimbList";
+		return "CurveSkeletonHeader";
 	}
 
 	return "SkeletonHeader";

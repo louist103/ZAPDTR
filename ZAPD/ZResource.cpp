@@ -29,7 +29,7 @@ ZResource::ZResource(ZFile* nParent)
 	RegisterOptionalAttribute("Static", "Global");
 }
 
-void ZResource::ExtractFromXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex)
+void ZResource::ExtractWithXML(tinyxml2::XMLElement* reader, offset_t nRawDataIndex)
 {
 	rawDataIndex = nRawDataIndex;
 	declaredInXml = true;
@@ -288,7 +288,7 @@ void ZResource::GetSourceOutputCode([[maybe_unused]] const std::string& prefix)
 		if (decl == nullptr || decl->isPlaceholder)
 			decl = DeclareVar(prefix, bodyStr);
 		else
-			decl->text = bodyStr;
+			decl->declBody = bodyStr;
 
 		// OTRTODO: This is a hack and we need something more elegant in the future...
 		if (GetResourceType() == ZResourceType::Array)
