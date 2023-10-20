@@ -1,7 +1,7 @@
 #include "Globals.h"
-#include "Utils/Directory.h"
-#include "Utils/File.h"
-#include "Utils/Path.h"
+#include <Utils/DiskFile.h>
+#include <Utils/Path.h>
+#include <Utils/Directory.h>
 #include "WarningHandler.h"
 
 // Linker Hacks Begin
@@ -103,6 +103,9 @@ void Arg_SetExporter(int& i, char* argv[]);
 void Arg_EnableGCCCompat(int& i, char* argv[]);
 void Arg_ForceStatic(int& i, char* argv[]);
 void Arg_ForceUnaccountedStatic(int& i, char* argv[]);
+void Arg_SetFileListPath(int& i, char* argv[]);
+void Arg_SetBuildRawTexture(int& i, char* argv[]);
+void Arg_SetNoRomMode(int& i, char* argv[]);
 
 int main(int argc, char* argv[]);
 
@@ -204,6 +207,9 @@ extern "C" int zapd_main(int argc, char* argv[])
 		BuildAssetBackground(Globals::Instance->inputPath, Globals::Instance->outputPath);
 	else if (fileMode == ZFileMode::BuildBlob)
 		BuildAssetBlob(Globals::Instance->inputPath, Globals::Instance->outputPath);
+
+	if (exporterSet != nullptr && exporterSet->endProgramFunc != nullptr)
+		exporterSet->endProgramFunc();
 
 	delete g;
 	return returnCode;
@@ -405,6 +411,9 @@ void ParseArgs(int& argc, char* argv[])
 		{"--static", &Arg_ForceStatic},
 		{"-us", &Arg_ForceUnaccountedStatic},
 		{"--unaccounted-static", &Arg_ForceUnaccountedStatic},
+		{"-fl", &Arg_SetFileListPath},
+		{"-brt", &Arg_SetBuildRawTexture},
+		{"--norom", &Arg_SetNoRomMode},
 	};
 
 	for (int32_t i = 2; i < argc; i++)
@@ -421,6 +430,9 @@ void ParseArgs(int& argc, char* argv[])
 		if (it == ArgFuncDictionary.end())
 		{
 			fprintf(stderr, "Unsupported argument: %s\n", arg.c_str());
+			ExporterSet* exporterSet = Globals::Instance->GetExporterSet();
+			if (exporterSet != nullptr)
+				exporterSet->parseArgsFunc(argc, argv, i);
 			continue;
 		}
 
@@ -442,6 +454,8 @@ ZFileMode ParseFileMode(const std::string& buildMode, ExporterSet* exporterSet)
 		fileMode = ZFileMode::BuildBlob;
 	else if (buildMode == "e")
 		fileMode = ZFileMode::Extract;
+	else if (buildMode == "ed")
+		fileMode = ZFileMode::ExtractDirectory;
 	else if (exporterSet != nullptr && exporterSet->parseFileModeFunc != nullptr)
 		exporterSet->parseFileModeFunc(buildMode, fileMode);
 
@@ -527,6 +541,7 @@ void Arg_VerboseUnaccounted([[maybe_unused]] int& i, [[maybe_unused]] char* argv
 
 void Arg_SetExporter(int& i, char* argv[])
 {
+	ImportExporters();
 	Globals::Instance->currentExporter = argv[++i];
 }
 
@@ -545,6 +560,21 @@ void Arg_ForceUnaccountedStatic([[maybe_unused]] int& i, [[maybe_unused]] char* 
 	Globals::Instance->forceUnaccountedStatic = true;
 }
 
+void Arg_SetFileListPath(int& i,  char* argv[])
+{
+	Globals::Instance->fileListPath = argv[++i];
+}
+
+void Arg_SetBuildRawTexture([[maybe_unused]] int& i, [[maybe_unused]] char* argv[])
+{
+	Globals::Instance->buildRawTexture = true;
+}
+
+void Arg_SetNoRomMode([[maybe_unused]] int& i, [[maybe_unused]] char* argv[])
+{
+	Globals::Instance->onlyGenSohOtr = true;
+}
+
 int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
 {
 	bool procFileModeSuccess = false;
@@ -558,23 +588,72 @@ int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
 
 		for (auto& extFile : Globals::Instance->cfg.externalFiles)
 		{
-			fs::path externalXmlFilePath =
-				Globals::Instance->cfg.externalXmlFolder / extFile.xmlPath;
+			if (fileMode == ZFileMode::ExtractDirectory)
+			{
+				std::vector<std::string> fileList =
+					Directory::ListFiles(Globals::Instance->inputPath.string());
 
-			if (Globals::Instance->verbosity >= VerbosityLevel::VERBOSITY_INFO)
-				printf("Parsing external file from config: '%s'\n", externalXmlFilePath.c_str());
+				const int num_threads = std::thread::hardware_concurrency();
+				ctpl::thread_pool pool(num_threads > 1 ? num_threads / 2 : 1);
 
-			parseSuccessful = Parse(externalXmlFilePath, Globals::Instance->baseRomPath,
-			                        extFile.outPath, ZFileMode::ExternalFile);
+				bool parseSuccessful;
 
-			if (!parseSuccessful)
-				return 1;
+				auto start = std::chrono::steady_clock::now();
+				int fileListSize = fileList.size();
+				Globals::Instance->singleThreaded = false;
+
+				for (int i = 0; i < fileListSize; i++)
+					Globals::Instance->workerData[i] = new FileWorker();
+
+				numWorkersLeft = fileListSize;
+
+				for (int i = 0; i < fileListSize; i++)
+				{
+					if (Globals::Instance->singleThreaded)
+					{
+						ExtractFunc(i, fileList.size(), fileList[i], fileMode);
+					}
+					else
+					{
+						std::string fileListItem = fileList[i];
+						pool.push([i, fileListSize, fileListItem, fileMode](int) {
+							ExtractFunc(i, fileListSize, fileListItem, fileMode);
+						});
+					}
+				}
+
+				if (!Globals::Instance->singleThreaded)
+				{
+					while (true)
+					{
+						if (numWorkersLeft <= 0)
+							break;
+
+						std::this_thread::sleep_for(std::chrono::milliseconds(250));
+					}
+				}
+
+				auto end = std::chrono::steady_clock::now();
+				auto diff = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+
+				printf("Generated OTR File Data in %i seconds\n", diff);
+			}
+			else
+			{
+				fs::path externalXmlFilePath =
+					Globals::Instance->cfg.externalXmlFolder / extFile.xmlPath;
+
+				if (Globals::Instance->verbosity >= VerbosityLevel::VERBOSITY_INFO)
+					printf("Parsing external file from config: '%s'\n",
+					       externalXmlFilePath.c_str());
+
+				parseSuccessful = Parse(externalXmlFilePath, Globals::Instance->baseRomPath,
+				                        extFile.outPath, ZFileMode::ExternalFile, 0);
+
+				if (!parseSuccessful)
+					return 1;
+			}
 		}
-
-		parseSuccessful = Parse(Globals::Instance->inputPath, Globals::Instance->baseRomPath,
-		                        Globals::Instance->outputPath, fileMode);
-		if (!parseSuccessful)
-			return 1;
 	}
 
 	return 0;
