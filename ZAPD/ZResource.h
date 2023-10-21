@@ -22,12 +22,7 @@
 #define GETSEGNUM(x) ((x >> 24) & 0xFF)
 
 class ZFile;
-//
-//
-//
-//
-//
-//
+
 enum class ZResourceType
 {
 	Error,
