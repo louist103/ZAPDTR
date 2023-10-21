@@ -22,18 +22,21 @@
 #define GETSEGNUM(x) ((x >> 24) & 0xFF)
 
 class ZFile;
-
+//
+//
+//
+//
+//
+//
 enum class ZResourceType
 {
 	Error,
-	ActorList,
 	Animation,
 	Array,
 	AltHeader,
 	Background,
 	Blob,
 	CollisionHeader,
-	CollisionPoly,
 	Cutscene,
 	DisplayList,
 	Limb,
@@ -41,23 +44,25 @@ enum class ZResourceType
 	Mtx,
 	Path,
 	PlayerAnimationData,
-	Pointer,
 	Room,
 	RoomCommand,
 	Scalar,
 	Scene,
 	Skeleton,
 	String,
-	SurfaceType,
 	Symbol,
 	Texture,
 	TextureAnimation,
 	TextureAnimationParams,
 	Vector,
 	Vertex,
+	Audio,
+	ActorList,
+	CollisionPoly,
+	Pointer,
+	SurfaceType,
 	Waterbox,
 	Text,
-	Audio,
 };
 
 class ResourceAttribute
