@@ -61,6 +61,7 @@ set(Header_Files__Z64
     "ZMtx.h"
     "ZPath.h"
     "ZPlayerAnimationData.h"
+    "ZPointer.h"
     "ZResource.h"
     "ZRom.h"
     "ZScalar.h"
@@ -175,6 +176,7 @@ set(Source_Files__Z64
     "ZMtx.cpp"
     "ZPath.cpp"
     "ZPlayerAnimationData.cpp"
+    "ZPointer.cpp"
     "ZResource.cpp"
     "ZRom.cpp"
     "ZScalar.cpp"
@@ -278,7 +280,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		set_target_properties(${PROJECT_NAME} PROPERTIES
 			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
 		set_target_properties(${PROJECT_NAME} PROPERTIES
 			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 		)
@@ -294,7 +296,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 foreach(ZTarget ${PROJECT_NAME} ZAPD)
 	get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${ZTarget} PROPERTY MSVC_RUNTIME_LIBRARY)
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
 		string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
 			$<$<CONFIG:Debug>:
 				MultiThreadedDebug
@@ -318,7 +320,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			"_MBCS"
 			STORMLIB_NO_AUTO_LINK
 		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
 		target_compile_definitions(${PROJECT_NAME} PRIVATE
 			"$<$<CONFIG:Debug>:"
 				"_CRT_SECURE_NO_WARNINGS"
@@ -365,7 +367,7 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             ${DEFAULT_CXX_EXCEPTION_HANDLING}
         )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
         target_compile_options(${PROJECT_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /Od
@@ -393,7 +395,7 @@ if(MSVC)
             >
             /DEBUG:FULL
         )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
         target_link_options(${PROJECT_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /PROFILE
@@ -443,7 +445,7 @@ add_dependencies(${PROJECT_NAME}
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+#	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 		set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 		set(ADDITIONAL_LIBRARY_DEPENDENCIES
 			"ZAPDUtils;"
@@ -452,7 +454,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			storm
 			PNG::PNG
 		)
-	endif()
+#	endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)

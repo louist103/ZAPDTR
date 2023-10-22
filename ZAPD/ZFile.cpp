@@ -31,6 +31,7 @@
 #include "ZTexture.h"
 #include "ZVector.h"
 #include "ZVtx.h"
+#undef FindResource
 
 ZFile::ZFile()
 {

@@ -194,6 +194,7 @@ LONG seh_filter(_EXCEPTION_POINTERS* ex)
 
 void CrashHandler_Init()
 {
+	#if 0
 #if HAS_POSIX == 1
 	signal(SIGSEGV, ErrorHandler);
 	signal(SIGABRT, ErrorHandler);
@@ -203,4 +204,5 @@ void CrashHandler_Init()
 	HANDLE_WARNING(WarningType::Always,
 	               "tried to set error handler, but this ZAPD build lacks support for one", "");
 #endif
+	#endif
 }
