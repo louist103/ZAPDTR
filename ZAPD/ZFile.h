@@ -1,11 +1,13 @@
 #pragma once
-
+#define NO_GDI
+#define WIN32_LEAN_AND_MEAN
 #include <string>
 #include <vector>
 
 #include "ZSymbol.h"
 #include "ZTexture.h"
 #include "tinyxml2.h"
+#undef FindResource
 
 enum class ZFileMode
 {

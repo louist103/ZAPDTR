@@ -46,7 +46,7 @@ enum class RoomCommand : uint8_t
 	SetMinimapList = 0x1C,
 	Unused1D = 0x1D,
 	SetMinimapChests = 0x1E,
-
+	SetCutscenesMM = 0x1F, // This opcode is not in the original game. Its a special command for OTRs.
 	Error = 0xFF
 };
 

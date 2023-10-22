@@ -68,6 +68,9 @@ ZVtx vtx(nullptr);
 
 #include "ZRoom/ZRoom.h"
 ZRoom room(nullptr);
+
+#include "ZPointer.h"
+ZPointer pointer(nullptr);
 // Linker Hacks End
 
 #include "ZFile.h"
@@ -600,7 +603,7 @@ int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
 
 				auto start = std::chrono::steady_clock::now();
 				int fileListSize = fileList.size();
-				Globals::Instance->singleThreaded = false;
+				Globals::Instance->singleThreaded = true;
 
 				for (int i = 0; i < fileListSize; i++)
 					Globals::Instance->workerData[i] = new FileWorker();

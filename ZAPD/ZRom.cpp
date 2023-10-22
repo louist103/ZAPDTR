@@ -66,6 +66,8 @@ namespace fs = std::filesystem;
 #define OOT_IQUE_CN 0xB1E1E07B
 #define UNKNOWN 0xFFFFFFFF
 
+#define MM_NTSC_10 0xDA6983E7
+
 bool ZRom::IsMQ() {
     int crc = BitConverter::ToInt32BE(romData, 0x10);
     switch (crc) {
@@ -82,6 +84,7 @@ bool ZRom::IsMQ() {
         case OOT_PAL_GC_DBG2:
         case OOT_IQUE_CN:
         case OOT_IQUE_TW:
+		case MM_NTSC_10:
         default:
             return false;
         case OOT_NTSC_JP_MQ:
@@ -188,6 +191,10 @@ ZRom::ZRom(std::string romPath)
 		version.listPath = "ique.txt";
 		version.offset = OOT_OFF_TW_IQUE;
 		break;
+	case MM_NTSC_10:
+		version.version = "MM US 1.0";
+		version.listPath = "mm.txt";
+		version.offset = MM_OFF_US_10;
 	}
 
 	auto path = StringHelper::Sprintf("%s/%s", Globals::Instance->fileListPath.string().c_str(), version.listPath.c_str());
@@ -205,6 +212,13 @@ ZRom::ZRom(std::string romPath)
 		const int virtEnd = BitConverter::ToInt32BE(romData, romOffset + 4);
 		const int physStart = BitConverter::ToInt32BE(romData, romOffset + 8);
 		const int physEnd = BitConverter::ToInt32BE(romData, romOffset + 12);
+			// File Deleted
+		if (physEnd == 0xFFFFFFFF && physStart == 0xFFFFFFFF)
+		{
+			// MM has some other checks that we might need to do
+			//if (virtEnd - virtStart == 0)
+			continue;
+		}
 
 		const bool compressed = physEnd != 0;
 		int size = compressed ? physEnd - physStart : virtEnd - virtStart;

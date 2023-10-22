@@ -76,16 +76,17 @@ std::string CutsceneMMSubCommandEntry_GenericCmd::GetBodySourceCode() const
 		type = base ? "true" : "false";
 
 	if (type != "")
-		return StringHelper::Sprintf(entryFmt.c_str(), type.c_str(), startFrame, endFrame, pad);
+		return StringHelper::Sprintf("%s", entryFmt.c_str(), type.c_str(), startFrame, endFrame,
+		                             pad);
 
 	if (commandId == CutsceneMM_CommandType::CS_CMD_LIGHT_SETTING ||
 	    commandId == CutsceneMM_CommandType::CS_CMD_START_SEQ ||
 	    commandId == CutsceneMM_CommandType::CS_CMD_STOP_SEQ)
 	{
-		return StringHelper::Sprintf(entryFmt.c_str(), base - 1, startFrame, endFrame, pad);
+		return StringHelper::Sprintf("%s", entryFmt.c_str(), base - 1, startFrame, endFrame, pad);
 	}
 
-	return StringHelper::Sprintf(entryFmt.c_str(), base, startFrame, endFrame, pad);
+	return StringHelper::Sprintf("%s", entryFmt.c_str(), base, startFrame, endFrame, pad);
 }
 
 CutsceneMMCommand_GenericCmd::CutsceneMMCommand_GenericCmd(const std::vector<uint8_t>& rawData,

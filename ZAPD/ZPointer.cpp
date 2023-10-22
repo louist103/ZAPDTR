@@ -31,7 +31,7 @@ std::string ZPointer::GetBodySourceCode() const
 {
 	std::string ptrName;
 
-	Globals::Instance->GetSegmentedPtrName(ptr, parent, "", ptrName);
+	Globals::Instance->GetSegmentedPtrName(ptr, parent, "", ptrName, parent->workerID, false);
 
 	return ptrName;
 }
