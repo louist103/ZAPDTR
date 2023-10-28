@@ -41,7 +41,7 @@ public:
 
 	std::string GetBodySourceCode() const override;
 
-	std::string GetSourceOutputHeader([[maybe_unused]] const std::string& prefix);
+	std::string GetSourceOutputHeader([[maybe_unused]] const std::string& prefix, std::set<std::string>* nameSet) override;
 
 	std::string GetSourceTypeName() const override;
 	ZResourceType GetResourceType() const override;

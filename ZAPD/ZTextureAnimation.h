@@ -142,10 +142,10 @@ public:
 	ZResourceType GetResourceType() const override;
 	size_t GetRawDataSize() const override;
 	std::string GetDefaultName(const std::string& prefix) const override;
-
+	//std::string GetSourceOutputHeader(const std::string& prefix,
+	//                                  std::set<std::string>* nameSet) override;
 	Declaration* DeclareVar(const std::string& prefix, const std::string& bodyStr) override;
 	std::string GetBodySourceCode() const override;
 
-private:
 	std::vector<TextureAnimationEntry> entries;
 };

@@ -883,6 +883,10 @@ void ZFile::GenerateSourceHeaderFiles()
 	std::set<std::string> nameSet;
 	for (ZResource* res : resources)
 	{
+		if (res->GetResourceType() == ZResourceType::TextureAnimation)
+		{
+			int bp = 1;
+		}
 		std::string resSrc = res->GetSourceOutputHeader("", &nameSet);
 		if (!resSrc.empty()) 
 		{
@@ -917,18 +921,24 @@ void ZFile::GenerateSourceHeaderFiles()
 		auto pathList = StringHelper::Split(xmlPath, "/");
 		std::string outPath = "";
 
-		for (int i = 0; i < 3; i++)
-			outPath += pathList[i] + "/";
-
-		for (int i = 5; i < pathList.size(); i++)
+		//for (int i = 0; i < 3; i++)
+		//	outPath += pathList[i] + "/";
+		//
+		for (int i = 0; i < pathList.size(); i++)
 		{
 			if (i == pathList.size() - 1)
 			{
 				outPath += Path::GetFileNameWithoutExtension(pathList[i]) + "/";
 				outPath += outName.string() + ".h";
 			}
-			else
+			else if (pathList[i] != "xml")
+			{
 				outPath += pathList[i];
+			}
+			else
+			{
+				continue;
+			}
 
 			if (i < pathList.size() - 1)
 				outPath += "/";

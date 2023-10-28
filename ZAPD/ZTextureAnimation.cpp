@@ -496,6 +496,7 @@ std::string TextureCyclingParams::GetBodySourceCode() const
 
 ZTextureAnimation::ZTextureAnimation(ZFile* nParent) : ZResource(nParent)
 {
+	genOTRDef = true;
 }
 
 /**
@@ -637,6 +638,12 @@ std::string ZTextureAnimation::GetDefaultName(const std::string& prefix) const
 {
 	return StringHelper::Sprintf("%sTexAnim_%06X", prefix.c_str(), rawDataIndex);
 }
+
+//std::string ZTextureAnimation::GetSourceOutputHeader(const std::string& prefix,
+//                                                     std::set<std::string>* nameSet)
+//{
+//	return std::string();
+//}
 
 Declaration* ZTextureAnimation::DeclareVar(const std::string& prefix, const std::string& bodyStr)
 {

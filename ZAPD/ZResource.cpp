@@ -332,11 +332,16 @@ std::string ZResource::GetSourceOutputHeader([[maybe_unused]] const std::string&
 
 		std::string xmlPath = StringHelper::Replace(parent->GetXmlFilePath().string(), "\\", "/");
 
-		if (StringHelper::Contains(outName, "_room_") || StringHelper::Contains(outName, "_scene")) {
+		if (StringHelper::Contains(outName, "_room_") ||
+		    StringHelper::Contains(outName, "_scene") ||
+		    (StringHelper::Contains(parent->GetXmlFilePath().string(), "/scenes/") ||
+		     StringHelper::Contains(parent->GetXmlFilePath().string(), "\\scenes\\"))) {
 			prefix = "scenes/shared";
 
-			// Regex for xml paths that are dungeons with unique MQ variants (only the main dungeon, not boss rooms)
-			std::regex dungeonsWithMQ(R"(((ydan)|(ddan)|(bdan)|(Bmori1)|(HIDAN)|(MIZUsin)|(jyasinzou)|(HAKAdan)|(HAKAdanCH)|(ice_doukutu)|(men)|(ganontika))\.xml)");
+			// Regex for xml paths that are dungeons with unique MQ variants (only the main dungeon,
+			// not boss rooms)
+			std::regex dungeonsWithMQ(
+				R"(((ydan)|(ddan)|(bdan)|(Bmori1)|(HIDAN)|(MIZUsin)|(jyasinzou)|(HAKAdan)|(HAKAdanCH)|(ice_doukutu)|(men)|(ganontika))\.xml)");
 
 			if (StringHelper::Contains(xmlPath, "dungeons/") && std::regex_search(xmlPath, dungeonsWithMQ)) {
 				prefix = "scenes/nonmq";

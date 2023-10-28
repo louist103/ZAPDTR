@@ -203,9 +203,10 @@ ZRom::ZRom(std::string romPath)
 
     std::vector<uint8_t> decompressedData(1);
 
-	for (int i = 0; i < lines.size(); i++)
+	for (unsigned int i = 0; i < lines.size(); i++)
 	{
 		lines[i] = StringHelper::Strip(lines[i], "\r");
+		bool yarCompressed = false;
 		const int romOffset = version.offset + (DMA_ENTRY_SIZE * i);
 
 		const int virtStart = BitConverter::ToInt32BE(romData, romOffset + 0);
@@ -227,12 +228,25 @@ ZRom::ZRom(std::string romPath)
 		outData.resize(size);
 		memcpy(outData.data(), romData.data() + physStart, size);
 
+		if ((i >= 15 && i <= 20) || i == 22)
+		{
+			yarCompressed = true;
+		}
+
 		if (compressed)
 		{
 			int decSize = virtEnd - virtStart;
 			decompressedData = std::vector<uint8_t>();
 			decompressedData.resize(decSize);
 			yaz0_decode(outData.data(), decompressedData.data(), decSize);
+			files[lines[i]] = decompressedData;
+		}
+		else if (yarCompressed)
+		{
+			//int decSize = virtEnd - virtStart;
+			decompressedData = std::vector<uint8_t>();
+			decompressedData.resize(1024*1024); //TODO FIX THIS PLEASE
+			yaz0_decodeYarArchive(outData.data(), decompressedData.data(), size);
 			files[lines[i]] = decompressedData;
 		}
 		else

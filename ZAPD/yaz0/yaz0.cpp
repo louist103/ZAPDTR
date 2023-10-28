@@ -180,11 +180,22 @@ std::vector<uint8_t> yaz0_encode(const u8* src, int src_size) {
   return buffer;
 }
 
-void yaz0_decode(const uint8_t* source, uint8_t* decomp, int32_t decompSize) {
+uint32_t yaz0_decode(const uint8_t* source, uint8_t* decomp, int32_t decompSize) {
   uint32_t srcPlace = 0, dstPlace = 0;
   uint32_t i, dist, copyPlace, numBytes;
   uint8_t codeByte, byte1, byte2;
   uint8_t bitCount = 0;
+
+  if (source[0] != 'Y' || source[1] != 'a' || source[2] != 'z' || source[3] != '0')
+  {
+	  return 0;
+  }
+
+  // Get size from the YAZ header
+  if (decompSize == -1)
+  {
+	  decompSize = toDWORD(((uint32_t*)source)[1]);
+  }
 
   source += 0x10;
   while (dstPlace < decompSize) {
@@ -224,4 +235,22 @@ void yaz0_decode(const uint8_t* source, uint8_t* decomp, int32_t decompSize) {
     codeByte = codeByte << 1;
     bitCount--;
   }
+  return decompSize;
+}
+
+void yaz0_decodeYarArchive(const uint8_t* src, uint8_t* dest, size_t decompSize)
+{
+	unsigned int firstEntryPos = toDWORD(((uint32_t*)src)[0]);
+	size_t totalSize = 0;
+	totalSize += yaz0_decode(src + firstEntryPos, dest + totalSize, -1);
+
+    for (unsigned int i = 1; i < (firstEntryPos / 4); i++)
+	{
+		if (i == 58)
+		{
+			int bp = 0;
+        }
+		unsigned int entry = toDWORD(((uint32_t*)src)[i]);
+		totalSize += yaz0_decode(src + firstEntryPos + entry, dest + totalSize, -1);
+    }
 }
