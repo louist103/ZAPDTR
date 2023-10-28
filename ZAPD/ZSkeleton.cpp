@@ -381,7 +381,7 @@ std::string ZLimbTable::GetBodySourceCode() const
 	return body;
 }
 
-std::string ZLimbTable::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix)
+std::string ZLimbTable::GetSourceOutputHeader([[maybe_unused]] const std::string& prefix, std::set<std::string>* nameSet)
 {
 	if (limbNoneName == "" || limbMaxName == "" || enumName == "")
 	{
