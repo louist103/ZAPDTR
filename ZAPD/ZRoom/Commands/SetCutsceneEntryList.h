@@ -4,7 +4,7 @@
 
 class CutsceneEntry
 {
-protected:
+public:
 	int16_t priority;
 	int16_t length;
 	int16_t csCamId;
@@ -16,7 +16,7 @@ protected:
 	uint8_t endCam;
 	uint8_t letterboxSize;
 
-public:
+
 	CutsceneEntry(const std::vector<uint8_t>& rawData, uint32_t rawDataIndex);
 
 	std::string GetBodySourceCode() const;
