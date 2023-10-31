@@ -2,6 +2,7 @@
  * Bruteforcing decoder for converting ADPCM-encoded AIFC into AIFF, in a way
  * that roundtrips with vadpcm_enc.
  */
+#define _CRT_SECURE_NO_WARNINGS
 #include <assert.h>
 #include <math.h>
 #include <stdarg.h>
