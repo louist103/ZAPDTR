@@ -16,6 +16,5 @@ public:
 	RoomCommand GetRoomCommand() const override;
 	std::string GetCommandCName() const override;
 
-private:
 	ZTextureAnimation textureAnimation;
 };
