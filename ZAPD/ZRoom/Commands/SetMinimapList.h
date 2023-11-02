@@ -9,7 +9,6 @@ public:
 
 	std::string GetBodySourceCode() const;
 
-protected:
 	uint16_t unk0;
 	uint16_t unk2;
 	uint16_t unk4;
@@ -32,7 +31,6 @@ public:
 	RoomCommand GetRoomCommand() const override;
 	std::string GetCommandCName() const override;
 
-private:
 	segptr_t listSegmentAddr;
 	uint32_t listSegmentOffset;
 	int16_t scale;

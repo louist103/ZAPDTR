@@ -9,7 +9,6 @@ public:
 
 	std::string GetBodySourceCode() const;
 
-protected:
 	uint16_t unk0;
 	uint16_t unk2;
 	uint16_t unk4;
