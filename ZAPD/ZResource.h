@@ -58,6 +58,7 @@ enum class ZResourceType
 	SurfaceType,
 	Waterbox,
 	Text,
+	TextMM,
 };
 
 class ResourceAttribute
