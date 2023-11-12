@@ -1,4 +1,4 @@
-#include "ZText.h"
+#include "ZTextMM.h"
 
 #include "Globals.h"
 #include "Utils/BitConverter.h"
@@ -7,24 +7,25 @@
 #include "Utils/StringHelper.h"
 #include "ZFile.h"
 
-REGISTER_ZFILENODE(Text, ZText);
+REGISTER_ZFILENODE(TextMM, ZTextMM);
 
-ZText::ZText(ZFile* nParent) : ZResource(nParent)
+ZTextMM::ZTextMM(ZFile* nParent) : ZResource(nParent)
 {
 	RegisterRequiredAttribute("CodeOffset");
 	RegisterOptionalAttribute("LangOffset", "0");
 }
 
-void ZText::ParseRawData()
+void ZTextMM::ParseRawData()
 {
 	ZResource::ParseRawData();
 
-	ParseOoT();
+	//ParseOoT();
+	ParseMM();
 
 	int bp2 = 0;
 }
 
-void ZText::ParseOoT()
+void ZTextMM::ParseMM()
 {
 	const auto& rawData = parent->GetRawData();
 	uint32_t currentPtr = StringHelper::StrToL(registeredAttributes.at("CodeOffset").value, 16);
@@ -49,23 +50,22 @@ void ZText::ParseOoT()
 
 	while (true)
 	{
-		MessageEntry msgEntry;
+		MessageEntryMM msgEntry;
 		msgEntry.id = BitConverter::ToInt16BE(codeData, currentPtr + 0);
-		msgEntry.textboxType = (codeData[currentPtr + 2] & 0xF0) >> 4;
-		msgEntry.textboxYPos = (codeData[currentPtr + 2] & 0x0F);
-
-		if (isPalLang)
-		{
-			msgEntry.segmentId = (codeData[langPtr + 0]);
-			msgEntry.msgOffset = BitConverter::ToInt32BE(codeData, langPtr + 0) & 0x00FFFFFF;
-		}
-		else
-		{
-			msgEntry.segmentId = (codeData[langPtr + 4]);
-			msgEntry.msgOffset = BitConverter::ToInt32BE(codeData, langPtr + 4) & 0x00FFFFFF;
-		}
+		msgEntry.msgOffset = BitConverter::ToInt32BE(codeData, langPtr + 4) & 0x00FFFFFF;
 
 		uint32_t msgPtr = msgEntry.msgOffset;
+
+		msgEntry.textboxType = (rawData[msgPtr + 0]);
+		msgEntry.textboxYPos = (rawData[msgPtr + 1]);
+		msgEntry.icon = BitConverter::ToInt16BE(rawData, msgPtr + 2);
+		msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 4);
+		msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 6);
+		msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 8);
+
+		msgEntry.segmentId = (codeData[langPtr + 4]);
+
+		msgPtr += 11;
 
 		unsigned char c = rawData[msgPtr];
 		unsigned int extra = 0;
@@ -128,18 +128,17 @@ void ZText::ParseOoT()
 	}
 }
 
-
-std::string ZText::GetSourceTypeName() const
+std::string ZTextMM::GetSourceTypeName() const
 {
 	return "u8";
 }
 
-size_t ZText::GetRawDataSize() const
+size_t ZTextMM::GetRawDataSize() const
 {
 	return 1;
 }
 
-ZResourceType ZText::GetResourceType() const
+ZResourceType ZTextMM::GetResourceType() const
 {
-	return ZResourceType::Text;
+	return ZResourceType::TextMM;
 }
