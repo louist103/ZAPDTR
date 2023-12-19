@@ -1766,6 +1766,14 @@ static int32_t GfxdCallback_Vtx(uint32_t seg, int32_t count)
 
 			bool keyAlreadyOccupied = self->vertices.find(vtxOffset) != self->vertices.end();
 
+			if (self->GetName() == "gSunDL")
+			{
+				for (auto& vtx: vtxList)
+				{
+					vtx.t = (((vtx.t >> 5) - 1) / 2) << 5;
+				}
+			}
+
 			// In some cases a vtxList already exists at vtxOffset. Only override the existing list
 			// if the new one is bigger.
 			if (!keyAlreadyOccupied ||
