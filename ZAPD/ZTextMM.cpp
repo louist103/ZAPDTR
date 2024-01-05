@@ -19,10 +19,7 @@ void ZTextMM::ParseRawData()
 {
 	ZResource::ParseRawData();
 
-	//ParseOoT();
 	ParseMM();
-
-	int bp2 = 0;
 }
 
 void ZTextMM::ParseMM()
@@ -70,9 +67,10 @@ void ZTextMM::ParseMM()
 		unsigned char c = rawData[msgPtr];
 		unsigned int extra = 0;
 		bool stop = false;
+		bool shouldTerminateOnNull = parent->GetName() == "staff_message_data_static";
 
 		// Continue parsing until we are told to stop and all extra bytes are read
-		while ((c != '\0' && !stop) || extra > 0)
+		while (( (c != '\0' || !shouldTerminateOnNull) && !stop) || extra > 0)
 		{
 			msgEntry.msg += c;
 			msgPtr++;
@@ -81,7 +79,7 @@ void ZTextMM::ParseMM()
 			if (extra == 0)
 			{
 				// End marker, so stop this message and do not read anything else
-				if (c == 0x02)
+				if (c == 0xBF)
 				{
 					stop = true;
 				}
