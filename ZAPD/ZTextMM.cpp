@@ -55,10 +55,10 @@ void ZTextMM::ParseMM()
 
 		msgEntry.textboxType = (rawData[msgPtr + 0]);
 		msgEntry.textboxYPos = (rawData[msgPtr + 1]);
-		msgEntry.icon = BitConverter::ToInt16BE(rawData, msgPtr + 2);
-		msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 4);
-		msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 6);
-		msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 8);
+		msgEntry.icon = (rawData[msgPtr + 2]);
+		msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 3);
+		msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 5);
+		msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 7);
 
 		msgEntry.segmentId = (codeData[langPtr + 4]);
 
