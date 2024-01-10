@@ -66,7 +66,8 @@ namespace fs = std::filesystem;
 #define OOT_IQUE_CN 0xB1E1E07B
 #define UNKNOWN 0xFFFFFFFF
 
-#define MM_NTSC_10 0xDA6983E7
+#define MM_NTSC_10 0x5354631C
+#define MM_NTSC_10_UNCOMPRESSED 0xDA6983E7
 
 bool ZRom::IsMQ() {
     int crc = BitConverter::ToInt32BE(romData, 0x10);
@@ -84,7 +85,9 @@ bool ZRom::IsMQ() {
         case OOT_PAL_GC_DBG2:
         case OOT_IQUE_CN:
         case OOT_IQUE_TW:
-		case MM_NTSC_10:
+        // MM - Always not MQ
+        case MM_NTSC_10:
+        case MM_NTSC_10_UNCOMPRESSED:
         default:
             return false;
         case OOT_NTSC_JP_MQ:
@@ -192,6 +195,10 @@ ZRom::ZRom(std::string romPath)
 		version.offset = OOT_OFF_TW_IQUE;
 		break;
 	case MM_NTSC_10:
+		version.version = "MM US 1.0";
+		version.listPath = "mm.txt";
+		version.offset = MM_OFF_US_10;
+	case MM_NTSC_10_UNCOMPRESSED:
 		version.version = "MM US 1.0";
 		version.listPath = "mm.txt";
 		version.offset = MM_OFF_US_10;
