@@ -65,50 +65,32 @@ void ZTextMM::ParseMM()
 		msgPtr += 11;
 
 		unsigned char c = rawData[msgPtr];
-		unsigned int extra = 0;
-		bool stop = false;
-		bool shouldTerminateOnNull = parent->GetName() == "staff_message_data_static";
 
-		// Continue parsing until we are told to stop and all extra bytes are read
-		while (( (c != '\0' || !shouldTerminateOnNull) && !stop) || extra > 0)
-		{
+		// Read until end marker (0xBF)
+		while (true) {
 			msgEntry.msg += c;
+
+			if (c == 0xBF) { // End marker
+				break;
+			}
+
+			switch (c) {
+				case 0x14: // Print: xx Spaces
+					msgEntry.msg += rawData[msgPtr + 1];
+					msgPtr++;
+					break;
+				case 0x1B: // Delay for xxxx Before Printing Remaining Text
+				case 0x1C: // Keep Text on Screen for xxxx Before Closing
+				case 0x1D: // Delay for xxxx Before Ending Conversation
+				case 0x1E: // Play Sound Effect xxxx
+				case 0x1F: // Delay for xxxx Before Resuming Text Flow
+					msgEntry.msg += rawData[msgPtr + 1];
+					msgEntry.msg += rawData[msgPtr + 2];
+					msgPtr += 2;
+					break;
+			}
+
 			msgPtr++;
-
-			// Some control codes require reading extra bytes
-			if (extra == 0)
-			{
-				// End marker, so stop this message and do not read anything else
-				if (c == 0xBF)
-				{
-					stop = true;
-				}
-				else if (c == 0x05 || c == 0x13 || c == 0x0E || c == 0x0C || c == 0x1E ||
-				         c == 0x06 || c == 0x14)
-				{
-					extra = 1;
-				}
-				// "Continue to new text ID", so stop this message and read two more bytes for the
-				// text ID
-				else if (c == 0x07)
-				{
-					extra = 2;
-					stop = true;
-				}
-				else if (c == 0x12 || c == 0x11)
-				{
-					extra = 2;
-				}
-				else if (c == 0x15)
-				{
-					extra = 3;
-				}
-			}
-			else
-			{
-				extra--;
-			}
-
 			c = rawData[msgPtr];
 		}
 
