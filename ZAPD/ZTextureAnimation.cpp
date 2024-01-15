@@ -141,8 +141,8 @@ void TextureScrollingParams::ParseRawData()
 
 	for (int i = 0; i < count; i++)
 	{
-		rows[i].xStep = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i);
-		rows[i].yStep = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 1);
+		rows[i].xStep = BitConverter::ToInt8BE(rawData, rawDataIndex + 4 * i);
+		rows[i].yStep = BitConverter::ToInt8BE(rawData, rawDataIndex + 4 * i + 1);
 		rows[i].width = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 2);
 		rows[i].height = BitConverter::ToUInt8BE(rawData, rawDataIndex + 4 * i + 3);
 	}
