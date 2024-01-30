@@ -59,6 +59,10 @@ enum class ZResourceType
 	Waterbox,
 	Text,
 	TextMM,
+	KeyFrameFlexLimb,
+	KeyFrameStandardLimb,
+	KeyFrameSkel,
+	KeyFrameAnimation,
 };
 
 class ResourceAttribute
