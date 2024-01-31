@@ -74,6 +74,13 @@ ZRoom room(nullptr);
 
 #include "ZPointer.h"
 ZPointer pointer(nullptr);
+
+#include "ZCKeyFrame.h"
+ZKeyFrameSkel kfSKel(nullptr);
+
+#include "ZCkeyFrameAnim.h"
+ZKeyFrameAnim kfAnim(nullptr);
+
 // Linker Hacks End
 
 #include "ZFile.h"

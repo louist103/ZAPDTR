@@ -9,6 +9,7 @@ REGISTER_ZFILENODE(KeyFrameAnimation, ZKeyFrameAnim);
 ZKeyFrameAnim::ZKeyFrameAnim(ZFile* nParent) : ZResource(nParent)
 {
 	RegisterRequiredAttribute("Skel");
+	genOTRDef = true;
 }
 
 ZKeyFrameAnim::~ZKeyFrameAnim()
@@ -179,10 +180,11 @@ std::string ZKeyFrameAnim::GetBodySourceCode() const
 	std::string kfNumsStr;
 	std::string presetValuesStr;
 
-	Globals::Instance->GetSegmentedPtrName(bitFlagsAddr, parent, "", bitFlagsStr);
-	Globals::Instance->GetSegmentedPtrName(keyFramesAddr, parent, "", keyFrameStr);
-	Globals::Instance->GetSegmentedPtrName(kfNumsAddr, parent, "", kfNumsStr);
-	Globals::Instance->GetSegmentedPtrName(presentValuesAddr, parent, "", presetValuesStr);
+	Globals::Instance->GetSegmentedPtrName(bitFlagsAddr, parent, "", bitFlagsStr, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(keyFramesAddr, parent, "", keyFrameStr, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(kfNumsAddr, parent, "", kfNumsStr, parent->workerID);
+	Globals::Instance->GetSegmentedPtrName(presentValuesAddr, parent, "", presetValuesStr,
+	                                       parent->workerID);
 
 	return StringHelper::Sprintf("\n\t%s, %s, %s, %s, 0x%04X, 0x%04X\n", bitFlagsStr.c_str(),
 	                             keyFrameStr.c_str(), kfNumsStr.c_str(), presetValuesStr.c_str(),
