@@ -11,6 +11,7 @@ REGISTER_ZFILENODE(KeyFrameLimbList, ZKeyFrameLimbList);
 ZKeyFrameSkel::ZKeyFrameSkel(ZFile* nParent) : ZResource(nParent)
 {
 	RegisterRequiredAttribute("LimbType");
+	genOTRDef = true;
 }
 
 ZKeyFrameSkel::~ZKeyFrameSkel()
@@ -115,9 +116,11 @@ std::string ZKeyFrameSkel::GetBodySourceCode() const
 	std::string limbStr;
 
 	if (limbType == ZKeyframeSkelType::Normal)
-		Globals::Instance->GetSegmentedPtrName(limbsPtr, parent, "KeyFrameStandardLimb", limbStr);
+		Globals::Instance->GetSegmentedPtrName(limbsPtr, parent, "KeyFrameStandardLimb", limbStr,
+		                                       parent->workerID);
 	else
-		Globals::Instance->GetSegmentedPtrName(limbsPtr, parent, "KeyFrameFlexLimb", limbStr);
+		Globals::Instance->GetSegmentedPtrName(limbsPtr, parent, "KeyFrameFlexLimb", limbStr,
+		                                       parent->workerID);
 
 	return StringHelper::Sprintf("\n\t0x%02X, 0x%02X, %s\n", limbCount, dListCount,
 	                             limbStr.c_str());
@@ -230,7 +233,8 @@ std::string ZKeyFrameStandardLimb::GetBodySourceCode() const
 	std::string declaration;
 	std::string dlString;
 
-	Globals::Instance->GetSegmentedArrayIndexedName(dlist, 8, parent, "Gfx", dlString);
+	Globals::Instance->GetSegmentedArrayIndexedName(dlist, 8, parent, "Gfx", dlString,
+	                                                parent->workerID);
 
 	declaration +=
 		StringHelper::Sprintf("%s, 0x%02X, 0x%02X, { 0x%04X, 0x%04X, 0x%04X},", dlString.c_str(),
@@ -244,7 +248,8 @@ std::string ZKeyFrameFlexLimb::GetBodySourceCode() const
 
 	std::string dlString;
 
-	Globals::Instance->GetSegmentedArrayIndexedName(dlist, 8, parent, "Gfx", dlString);
+	Globals::Instance->GetSegmentedArrayIndexedName(dlist, 8, parent, "Gfx", dlString,
+	                                                parent->workerID);
 
 	declaration += StringHelper::Sprintf("%s, 0x%02X, 0x%02X, 0x%02X", dlString.c_str(),
 	                                     numChildren, flags, callbackIndex);
