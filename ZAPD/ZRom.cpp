@@ -43,6 +43,7 @@ namespace fs = std::filesystem;
 #define OOT_OFF_TW_IQUE 0xB240
 
 #define MM_OFF_US_10 0x1A500
+#define MM_OFF_US_GC 0x1AE90
 #define MM_OFF_JP_10 0x1C110
 #define MM_OFF_JP_11 0x1C050
 #define MM_OFF_DBG 0x24F60
@@ -68,6 +69,7 @@ namespace fs = std::filesystem;
 
 #define MM_NTSC_10 0x5354631C
 #define MM_NTSC_10_UNCOMPRESSED 0xDA6983E7
+#define MM_NTSC_GC 0xB443EB08
 
 bool ZRom::IsMQ() {
     int crc = BitConverter::ToInt32BE(romData, 0x10);
@@ -88,6 +90,7 @@ bool ZRom::IsMQ() {
         // MM - Always not MQ
         case MM_NTSC_10:
         case MM_NTSC_10_UNCOMPRESSED:
+		case MM_NTSC_GC:
         default:
             return false;
         case OOT_NTSC_JP_MQ:
@@ -198,10 +201,17 @@ ZRom::ZRom(std::string romPath)
 		version.version = "MM US 1.0";
 		version.listPath = "mm.txt";
 		version.offset = MM_OFF_US_10;
+		break;
 	case MM_NTSC_10_UNCOMPRESSED:
 		version.version = "MM US 1.0";
 		version.listPath = "mm.txt";
 		version.offset = MM_OFF_US_10;
+		break;
+	case MM_NTSC_GC:
+		version.version = "MM US GC";
+		version.listPath = "mm_gc.txt";
+		version.offset = MM_OFF_US_GC;
+		break;
 	}
 
 	auto path = StringHelper::Sprintf("%s/%s", Globals::Instance->fileListPath.string().c_str(), version.listPath.c_str());
