@@ -109,6 +109,45 @@ void ZTextMM::ParseMM()
 				msgPtr++;
 				c = rawData[msgPtr];
 			}
+		} else if (parent->GetName() == "message_data_static_jp") {
+			msgEntry.textboxType = (rawData[msgPtr + 0]);
+			msgEntry.textboxYPos = (rawData[msgPtr + 1]);
+			msgEntry.icon = (rawData[msgPtr + 2]);
+			msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 3);
+			msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 5);
+			msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 7);
+
+			msgPtr += 11;
+
+			unsigned char c = rawData[msgPtr];
+
+			// Read until end marker (0x05)
+			while (true) {
+				msgEntry.msg += c;
+
+				if (c == 0x05) { // End marker
+					break;
+				}
+
+				switch (c) {
+					case 0x14: // Shift: Print xx Spaces
+						msgEntry.msg += rawData[msgPtr + 1];
+						msgPtr++;
+						break;
+					case 0x1B: // Box Break Delay: Delay for xxxx Before Printing Remaining Text
+					case 0x1C: // Fade: Keep Text on Screen for xxxx Before Closing
+					case 0x1D: // Fade Skippable: Delay for xxxx Before Ending Conversation
+					case 0x1E: // SFX: Play Sound Effect xxxx
+					case 0x1F: // Delay: Delay for xxxx Before Resuming Text Flow
+						msgEntry.msg += rawData[msgPtr + 1];
+						msgEntry.msg += rawData[msgPtr + 2];
+						msgPtr += 2;
+						break;
+				}
+
+				msgPtr++;
+				c = rawData[msgPtr];
+			}
 		} else { // NES
 			// NES has a header with extra information, parse that and move the ptr forward
 			msgEntry.textboxType = (rawData[msgPtr + 0]);
