@@ -112,41 +112,43 @@ void ZTextMM::ParseMM()
 		} else if (parent->GetName() == "message_data_static_jp") {
 			msgEntry.textboxType = (rawData[msgPtr + 0]);
 			msgEntry.textboxYPos = (rawData[msgPtr + 1]);
-			msgEntry.icon = (rawData[msgPtr + 2]);
-			msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 3);
-			msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 5);
-			msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 7);
+			msgEntry.icon = BitConverter::ToUInt16BE(rawData, msgPtr + 2);
+			msgEntry.nextMessageID = BitConverter::ToInt16BE(rawData, msgPtr + 4);
+			msgEntry.firstItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 6);
+			msgEntry.secondItemCost = BitConverter::ToInt16BE(rawData, msgPtr + 8);
 
-			msgPtr += 11;
+			msgPtr += 12;
 
-			unsigned char c = rawData[msgPtr];
+			uint16_t c = BitConverter::ToUInt16BE(rawData, msgPtr);
 
-			// Read until end marker (0x05)
+			// Read until end marker (0x0500)
 			while (true) {
-				msgEntry.msg += c;
+				msgEntry.msg += rawData[msgPtr + 1];
+				msgEntry.msg += rawData[msgPtr];
 
-				if (c == 0x05) { // End marker
+				if (c == 0x0500) { // End marker
 					break;
 				}
 
 				switch (c) {
-					case 0x14: // Shift: Print xx Spaces
-						msgEntry.msg += rawData[msgPtr + 1];
-						msgPtr++;
+					case 0x001F: // Shift: Print 00xx Spaces
+						msgEntry.msg += rawData[msgPtr + 3];
+						msgEntry.msg += rawData[msgPtr + 2];
+						msgPtr += 2;
 						break;
-					case 0x1B: // Box Break Delay: Delay for xxxx Before Printing Remaining Text
-					case 0x1C: // Fade: Keep Text on Screen for xxxx Before Closing
-					case 0x1D: // Fade Skippable: Delay for xxxx Before Ending Conversation
-					case 0x1E: // SFX: Play Sound Effect xxxx
-					case 0x1F: // Delay: Delay for xxxx Before Resuming Text Flow
-						msgEntry.msg += rawData[msgPtr + 1];
+					case 0x0110: // Box Break Delay: Delay for xxxx Before Printing Remaining Text
+					case 0x0111: // Fade: Keep Text on Screen for xxxx Before Closing
+					case 0x0112: // Fade Skippable: Delay for xxxx Before Ending Conversation
+					case 0x0120: // SFX: Play Sound Effect xxxx
+					case 0x0128: // Delay: Delay for xxxx Before Resuming Text Flow
+						msgEntry.msg += rawData[msgPtr + 3];
 						msgEntry.msg += rawData[msgPtr + 2];
 						msgPtr += 2;
 						break;
 				}
 
-				msgPtr++;
-				c = rawData[msgPtr];
+				msgPtr += 2;
+				c = BitConverter::ToUInt16BE(rawData, msgPtr);
 			}
 		} else { // NES
 			// NES has a header with extra information, parse that and move the ptr forward
