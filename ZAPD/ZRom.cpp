@@ -214,6 +214,7 @@ ZRom::ZRom(std::string romPath)
 		version.version = "MM US GC";
 		version.listPath = "mm_gc.txt";
 		version.offset = MM_OFF_US_GC;
+		break;
 	case MM_NTSC_JP_GC:
 		version.version = "MM JP GC";
 		version.listPath = "mm_gc_jp.txt";
