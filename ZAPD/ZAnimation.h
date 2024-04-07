@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "Vec3s.h"
 #include "ZResource.h"
 #include "ZSkeleton.h"
 #include "tinyxml2.h"
