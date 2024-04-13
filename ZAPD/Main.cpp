@@ -271,6 +271,7 @@ int ExtractFunc(int workerID, int fileListSize, std::string fileListItem, ZFileM
 
 		Globals::Instance->externalFiles.clear();
 		Globals::Instance->segments.clear();
+		Globals::Instance->segmentFiles.clear();
 		Globals::Instance->cfg.segmentRefFiles.clear();
 	}
 	else
@@ -286,6 +287,7 @@ int ExtractFunc(int workerID, int fileListSize, std::string fileListItem, ZFileM
 
 		Globals::Instance->workerData[workerID]->externalFiles.clear();
 		Globals::Instance->workerData[workerID]->segments.clear();
+		Globals::Instance->workerData[workerID]->segmentFiles.clear();
 		Globals::Instance->workerData[workerID]->segmentRefFiles.clear();
 
 		numWorkersLeft--;

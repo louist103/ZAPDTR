@@ -46,7 +46,10 @@ void Globals::AddSegment(int32_t segment, ZFile* file, int workerID)
 
 		if (std::find(worker->segments.begin(), worker->segments.end(), segment) ==
 		    worker->segments.end())
+		{
 			worker->segments.push_back(segment);
+			worker->segmentFiles.push_back(file);
+		}
 		if (worker->segmentRefFiles.find(segment) == worker->segmentRefFiles.end())
 			worker->segmentRefFiles[segment] = std::vector<ZFile*>();
 
@@ -55,7 +58,10 @@ void Globals::AddSegment(int32_t segment, ZFile* file, int workerID)
 	else
 	{
 		if (std::find(segments.begin(), segments.end(), segment) == segments.end())
+		{
 			segments.push_back(segment);
+			segmentFiles.push_back(file);
+		}
 		if (cfg.segmentRefFiles.find(segment) == cfg.segmentRefFiles.end())
 			cfg.segmentRefFiles[segment] = std::vector<ZFile*>();
 
@@ -81,7 +87,7 @@ ZFile* Globals::GetSegment(int32_t segment, int workerID)
 			int idx = std::find(workerData[workerID]->segments.begin(),
 			                    workerData[workerID]->segments.end(), segment) -
 			          workerData[workerID]->segments.begin();
-			return workerData[workerID]->files[idx];
+			return workerData[workerID]->segmentFiles[idx];
 		}
 		else
 			return nullptr;
@@ -91,7 +97,7 @@ ZFile* Globals::GetSegment(int32_t segment, int workerID)
 		if (HasSegment(segment, workerID))
 		{
 			int idx = std::find(segments.begin(), segments.end(), segment) - segments.begin();
-			return files[idx];
+			return segmentFiles[idx];
 		}
 		else
 			return nullptr;
