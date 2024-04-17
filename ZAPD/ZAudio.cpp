@@ -80,13 +80,6 @@ void ZAudio::ParseXML(tinyxml2::XMLElement* reader)
 	}
 }
 
-void ZAudio::DecodeADPCMSample(SampleEntry* sample)
-{
-	int16_t buffer[1024 * 128];
-
-	int16_t* out = &buffer[0];
-}
-
 std::vector<AdsrEnvelope*> ZAudio::ParseEnvelopeData(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable, int envelopeOffset, int baseOffset)
 {
 	std::vector<AdsrEnvelope*> result;
@@ -252,9 +245,9 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 			drum.loaded = codeData[samplePtr + 2];
 			drum.tuning = BitConverter::ToFloatBE(codeData, samplePtr + 8);
 			drum.env = ParseEnvelopeData(codeData, audioTable, BitConverter::ToInt32BE(codeData, samplePtr + 12) + ptr, ptr);
+			entry.drums.push_back(drum);
 		}
 
-		entry.drums.push_back(drum);
 
 		currentOffset += 4;
 	}
@@ -301,8 +294,9 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 				instrument.highNotesSound = ParseSoundFontEntry(
 					codeData, audioTable, audioSampleBank[sampleBankId1], sampleBankId1, currentOffset + 24, ptr);
 		}
-
+		// Interesting audio bug if you put this next line in the if block
 		entry.instruments.push_back(instrument);
+
 	}
 }
 

@@ -107,7 +107,6 @@ public:
 
 	void ParseXML(tinyxml2::XMLElement* reader) override;
 
-	void DecodeADPCMSample(SampleEntry* sample);
 	std::vector<AdsrEnvelope*> ParseEnvelopeData(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable,
 	                               int envelopeOffset, int baseOffset);
 
