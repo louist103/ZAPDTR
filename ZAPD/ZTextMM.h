@@ -9,7 +9,7 @@ public:
 	uint16_t id;
 	uint8_t textboxType;
 	uint8_t textboxYPos;
-	uint8_t icon;
+	uint16_t icon;
 	uint16_t nextMessageID;
 	uint16_t firstItemCost;
 	uint16_t secondItemCost;
