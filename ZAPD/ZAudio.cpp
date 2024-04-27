@@ -109,9 +109,15 @@ SoundFontEntry* ZAudio::ParseSoundFontEntry(std::vector<uint8_t> audioBank,
                                             int baseOffset)
 {
 	SoundFontEntry* soundFont = new SoundFontEntry();
+
+	int sampleOffset = BitConverter::ToInt32BE(audioBank, soundFontOffset + 0) + baseOffset;
+
+	if (sampleOffset == 0)
+		return nullptr;
+
 	soundFont->sampleEntry = ParseSampleEntry(
 		audioBank, audioTable, audioSampleBankEntry, bankIndex,
-		BitConverter::ToInt32BE(audioBank, soundFontOffset + 0) + baseOffset, baseOffset);
+		sampleOffset, baseOffset);
 	soundFont->tuning = BitConverter::ToFloatBE(audioBank, soundFontOffset + 4);
 
 	return soundFont;
@@ -258,7 +264,9 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 		SoundFontEntry* sfx;
 		sfx = ParseSoundFontEntry(codeData, audioTable, audioSampleBank[sampleBankId1], sampleBankId1,
 		                          currentOffset, ptr);
-		entry.soundEffects.push_back(sfx);
+
+		//if (sfx != nullptr)
+			entry.soundEffects.push_back(sfx);
 
 		currentOffset += 8;
 	}
