@@ -235,7 +235,7 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 	int currentOffset = BitConverter::ToInt32BE(codeData, ptr) + ptr;
 	for (int i = 0; i < numDrums; i++)
 	{
-		DrumEntry drum;
+		DrumEntry drum = {0};
 
 		int samplePtr = BitConverter::ToInt32BE(codeData, currentOffset);
 
@@ -251,8 +251,8 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 			drum.loaded = codeData[samplePtr + 2];
 			drum.tuning = BitConverter::ToFloatBE(codeData, samplePtr + 8);
 			drum.env = ParseEnvelopeData(codeData, audioTable, BitConverter::ToInt32BE(codeData, samplePtr + 12) + ptr, ptr);
-			entry.drums.push_back(drum);
 		}
+		entry.drums.push_back(drum);
 
 
 		currentOffset += 4;
