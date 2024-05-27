@@ -1783,7 +1783,7 @@ static int32_t GfxdCallback_Vtx(uint32_t seg, int32_t count)
 	}
 
 	self->references.push_back(seg);
-	
+
 	if (!Globals::Instance->otrMode)
 		gfxd_puts("@r");
 
@@ -2120,10 +2120,7 @@ std::string ZDisplayList::ProcessGfxDis([[maybe_unused]] const std::string& pref
 	gfxd_enable(gfxd_emit_dec_color);  // use decimal for colors
 
 	// set microcode. see gfxd.h for more options.
-	if (dListType == DListType::F3DZEX)
-		gfxd_target(gfxd_f3dex2);
-	else
-		gfxd_target(gfxd_f3dex);
+	gfxd_target(gfxd_f3dex2);
 
 	gfxd_udata_set(this);
 	gfxd_execute();                               // generate display list
