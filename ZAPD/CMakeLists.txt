@@ -143,11 +143,7 @@ source_group("Source Files" FILES ${Source_Files})
 set(Source_Files__Libraries__libgfxd
     "../lib/libgfxd/gfxd.c"
     "../lib/libgfxd/uc.c"
-    "../lib/libgfxd/uc_f3d.c"
-    "../lib/libgfxd/uc_f3db.c"
-    "../lib/libgfxd/uc_f3dex.c"
     "../lib/libgfxd/uc_f3dex2.c"
-    "../lib/libgfxd/uc_f3dexb.c"
 )
 source_group("Source Files\\Libraries\\libgfxd" FILES ${Source_Files__Libraries__libgfxd})
 
@@ -431,7 +427,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|AppleClang")
         $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-enum-enum-conversion>
 		-pthread
 	)
-	
+
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_options(${PROJECT_NAME} PUBLIC
             -pthread
