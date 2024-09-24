@@ -92,16 +92,13 @@ public:
 	std::vector<AudioTableEntry> sequenceTable;
 	std::vector<AudioTableEntry> sampleBankTable;
 	std::vector<std::vector<char>> sequences;
-	std::map<uint64_t, SampleEntry*> samples;
+	std::map<uint32_t, SampleEntry*> samples;
 	std::vector<std::vector<uint32_t>> fontIndices;
 	std::vector<std::string> seqNames;
 	std::map<uint32_t, std::string> soundFontNames;
 
 	// First Key = Bank ID, Sec Key = Sample Data Offset, Third Key = LoopDataOffset,
 	std::map<uint32_t, std::map<uint32_t, std::string>> sampleOffsets;
-
-	// Key = Loop Offset, Value = Sample Offset
-	std::map<uint64_t, uint32_t> loopOverrideSamples;
 
 	ZAudio(ZFile* nParent);
 
