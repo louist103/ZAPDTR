@@ -125,7 +125,7 @@ SampleEntry* ZAudio::ParseSampleEntry(const std::vector<uint8_t>& audioBank,
 	int loopOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 8) + baseOffset;
 	int bookOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 12) + baseOffset;
 
-	if (samples.find((uint64_t)sampleDataOffset) == samples.end())
+	if (samples.find(sampleDataOffset) == samples.end())
 	{
 		SampleEntry* sample = new SampleEntry();
 
