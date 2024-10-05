@@ -97,32 +97,29 @@ public:
 	std::vector<std::string> seqNames;
 	std::map<uint32_t, std::string> soundFontNames;
 
-	// First Key = Bank ID, Sec Key = LoopDataOffset, Third Key = Sample Data Offset
-	std::map<uint32_t, std::map<uint32_t, std::map<uint32_t, std::string>>> sampleOffsets;
-
-	// Key = Loop Offset, Value = Sample Offset
-	std::map<uint32_t, uint32_t> specialLoopSamples;
+	// First Key = Bank ID, Sec Key = Sample Data Offset.
+	std::map<uint32_t, std::map<uint32_t, std::string>> sampleOffsets;
 
 	ZAudio(ZFile* nParent);
 
 	void ParseXML(tinyxml2::XMLElement* reader) override;
 
-	std::vector<AdsrEnvelope*> ParseEnvelopeData(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable,
+	std::vector<AdsrEnvelope*> ParseEnvelopeData(const std::vector<uint8_t>& audioBank, const std::vector<uint8_t>& audioTable,
 	                               int envelopeOffset, int baseOffset);
 
-	SoundFontEntry* ParseSoundFontEntry(std::vector<uint8_t> audioBank,
-	                                    std::vector<uint8_t> audioTable,
+	SoundFontEntry* ParseSoundFontEntry(const std::vector<uint8_t>& audioBank,
+	                                    const std::vector<uint8_t>& audioTable,
 	                                    AudioTableEntry audioSampleBankEntry, int bankIndex,
 	                                    int soundFontOffset,
 	                                    int baseOffset);
 
-	SampleEntry* ParseSampleEntry(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable,
+	SampleEntry* ParseSampleEntry(const std::vector<uint8_t>& audioBank, const std::vector<uint8_t>& audioTable,
 	                              AudioTableEntry audioSampleBankEntry, int bankIndex,
 	                              int sampleOffset, int baseOffset);
 
-	std::vector<AudioTableEntry> ParseAudioTable(std::vector<uint8_t> codeData, int baseOffset);
-	void ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> audioTable,
-	                    std::vector<AudioTableEntry> audioSampleBank, AudioTableEntry& entry);
+	std::vector<AudioTableEntry> ParseAudioTable(const std::vector<uint8_t>& codeData, int baseOffset);
+	void ParseSoundFont(const std::vector<uint8_t>& codeData, const std::vector<uint8_t>& audioTable,
+	                    const std::vector<AudioTableEntry>& audioSampleBank, AudioTableEntry& entry);
 
 	void ParseRawData() override;
 

@@ -27,13 +27,13 @@ void ZAudio::ParseXML(tinyxml2::XMLElement* reader)
 
 	while (child != nullptr)
 	{
-		if (std::string(child->Value()) == "Sequences")
+		if (strcmp(child->Value(), "Sequences") == 0)
 		{
 			auto seqChild = child->FirstChildElement();
 
 			while (seqChild != nullptr)
 			{
-				if (std::string(seqChild->Value()) == "Sequence")
+				if (strcmp(seqChild->Value(), "Sequence") == 0)
 				{
 					seqNames.push_back(seqChild->Attribute("Name"));
 				}
@@ -42,34 +42,25 @@ void ZAudio::ParseXML(tinyxml2::XMLElement* reader)
 			}
 		}
 
-		if (std::string(child->Value()) == "Samples")
+		if (strcmp(child->Value(), "Samples") == 0)
 		{
 			int bankId = child->IntAttribute("Bank", 0);
 			auto sampChild = child->FirstChildElement();
 
 			while (sampChild != nullptr)
 			{
-				if (std::string(sampChild->Value()) == "Sample")
+				if (strcmp(sampChild->Value(), "Sample") == 0)
 				{
-					auto atStr = sampChild->FirstChildElement()->Attribute("At");
-					auto loopStr = sampChild->FirstChildElement()->Attribute("LoopOffset");
-					uint32_t loopOffset = 0xFFFFFFFF;
-					uint32_t atOffset = StringHelper::StrToL(atStr, 16);
+					uint32_t atOffset = sampChild->UnsignedAttribute("Offset");
 
-					if (loopStr != NULL)
-					{
-						loopOffset = StringHelper::StrToL(loopStr, 16);
-						specialLoopSamples[loopOffset] = atOffset;
-					}
-
-					sampleOffsets[bankId][loopOffset][atOffset] = sampChild->Attribute("Name");
+					sampleOffsets[bankId][atOffset] = sampChild->Attribute("Name");
 				}
 
 				sampChild = sampChild->NextSiblingElement();
 			}
 		}
 
-		if (std::string(child->Value()) == "Soundfont")
+		if (strcmp(child->Value(), "Soundfont") == 0)
 		{
 			auto name = child->Attribute("Name");
 			auto index = child->IntAttribute("Index", 0);
@@ -80,7 +71,7 @@ void ZAudio::ParseXML(tinyxml2::XMLElement* reader)
 	}
 }
 
-std::vector<AdsrEnvelope*> ZAudio::ParseEnvelopeData(std::vector<uint8_t> audioBank, std::vector<uint8_t> audioTable, int envelopeOffset, int baseOffset)
+std::vector<AdsrEnvelope*> ZAudio::ParseEnvelopeData(const std::vector<uint8_t>& audioBank, const std::vector<uint8_t>& audioTable, int envelopeOffset, int baseOffset)
 {
 	std::vector<AdsrEnvelope*> result;
 
@@ -102,8 +93,8 @@ std::vector<AdsrEnvelope*> ZAudio::ParseEnvelopeData(std::vector<uint8_t> audioB
 	return result;
 }
 
-SoundFontEntry* ZAudio::ParseSoundFontEntry(std::vector<uint8_t> audioBank,
-                                            std::vector<uint8_t> audioTable,
+SoundFontEntry* ZAudio::ParseSoundFontEntry(const std::vector<uint8_t>& audioBank,
+                                            const std::vector<uint8_t>& audioTable,
                                             AudioTableEntry audioSampleBankEntry, int bankIndex,
                                             int soundFontOffset,
                                             int baseOffset)
@@ -123,28 +114,26 @@ SoundFontEntry* ZAudio::ParseSoundFontEntry(std::vector<uint8_t> audioBank,
 	return soundFont;
 }
 
-SampleEntry* ZAudio::ParseSampleEntry(std::vector<uint8_t> audioBank,
-                                      std::vector<uint8_t> audioTable,
+SampleEntry* ZAudio::ParseSampleEntry(const std::vector<uint8_t>& audioBank,
+                                      const std::vector<uint8_t>& audioTable,
                                       AudioTableEntry audioSampleBankEntry, int bankIndex,
                                       int sampleOffset,
                                       int baseOffset)
 {
 	int sampleDataOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 4) + audioSampleBankEntry.ptr;
+	int sampleSize = BitConverter::ToInt32BE(audioBank, sampleOffset + 0) & 0x00FFFFFF;
+	int loopOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 8) + baseOffset;
+	int bookOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 12) + baseOffset;
 
-	if (samples.find(sampleOffset) == samples.end())
+	if (samples.find(sampleDataOffset) == samples.end())
 	{
 		SampleEntry* sample = new SampleEntry();
 
 		sample->bankId = bankIndex;
 
-		int sampleSize = BitConverter::ToInt32BE(audioBank, sampleOffset + 0) & 0x00FFFFFF;
-		int loopOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 8) + baseOffset;
-		int bookOffset = BitConverter::ToInt32BE(audioBank, sampleOffset + 12) + baseOffset;
 
-		char* sampleData = (char*)malloc(sampleSize);
-		memcpy(sampleData, audioTable.data() + sampleDataOffset, sampleSize);
 		sample->data = std::vector<uint8_t>(sampleSize);
-		memcpy(sample->data.data(), sampleData, sampleSize);
+		memcpy(sample->data.data(), audioTable.data() + sampleDataOffset, sampleSize);
 
 		uint32_t origField = (BitConverter::ToUInt32BE(audioBank, sampleOffset + 0));
 		sample->codec = (origField >> 28) & 0x0F;
@@ -160,6 +149,7 @@ SampleEntry* ZAudio::ParseSampleEntry(std::vector<uint8_t> audioBank,
 		{
 			for (int i = 0; i < 16; i++)
 			{
+				// TODO can loop.states be an array of size 16?
 				int16_t state = BitConverter::ToInt16BE(audioBank, loopOffset + 16 + (i * 2));
 				sample->loop.states.push_back(state);
 			}
@@ -168,7 +158,9 @@ SampleEntry* ZAudio::ParseSampleEntry(std::vector<uint8_t> audioBank,
 		sample->book.order = BitConverter::ToInt32BE(audioBank, bookOffset + 0);
 		sample->book.npredictors = BitConverter::ToInt32BE(audioBank, bookOffset + 4);
 
-		for (int i = 0; i < sample->book.npredictors * sample->book.order * 8; i++)
+		int32_t numBooks = sample->book.npredictors * sample->book.order * 8;
+		sample->book.books.reserve(numBooks);
+		for (int i = 0; i < numBooks; i++)
 		{
 			sample->book.books.push_back(
 				BitConverter::ToInt16BE(audioBank, bookOffset + 8 + (i * 2)));
@@ -176,22 +168,22 @@ SampleEntry* ZAudio::ParseSampleEntry(std::vector<uint8_t> audioBank,
 
 		sample->sampleDataOffset = sampleDataOffset;
 
-		if (specialLoopSamples.find(loopOffset) != specialLoopSamples.end())
-			sample->sampleLoopOffset = loopOffset;
+		sample->sampleLoopOffset = 0;
 
-		sample->fileName = StringHelper::Sprintf("audio/samples/sample_%08X", sampleOffset);
 
-		samples[sampleOffset] = sample;
+		sample->fileName = sampleOffsets[bankIndex][sampleDataOffset];
+
+		samples[sampleDataOffset] = sample;
 
 		return sample;
 	}
 	else
 	{
-		return samples[sampleOffset];
+		return samples[sampleDataOffset];
 	}
 }
 
-std::vector<AudioTableEntry> ZAudio::ParseAudioTable(std::vector<uint8_t> codeData, int baseOffset)
+std::vector<AudioTableEntry> ZAudio::ParseAudioTable(const std::vector<uint8_t>& codeData, int baseOffset)
 {
 	std::vector<AudioTableEntry> entries;
 
@@ -199,7 +191,7 @@ std::vector<AudioTableEntry> ZAudio::ParseAudioTable(std::vector<uint8_t> codeDa
 	int romAddr = BitConverter::ToInt16BE(codeData, baseOffset + 4);
 
 	int currentOffset = baseOffset + 16;
-
+	entries.reserve(numEntries);
 	for (int i = 0; i < numEntries; i++)
 	{
 		AudioTableEntry entry;
@@ -220,8 +212,8 @@ std::vector<AudioTableEntry> ZAudio::ParseAudioTable(std::vector<uint8_t> codeDa
 	return entries;
 }
 
-void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> audioTable,
-                            std::vector<AudioTableEntry> audioSampleBank,
+void ZAudio::ParseSoundFont(const std::vector<uint8_t>& codeData, const std::vector<uint8_t>& audioTable,
+                            const std::vector<AudioTableEntry>& audioSampleBank,
                             AudioTableEntry& entry)
 {
 	int ptr = entry.ptr;
@@ -231,6 +223,10 @@ void ZAudio::ParseSoundFont(std::vector<uint8_t> codeData, std::vector<uint8_t> 
 	int numInstruments = (entry.data2 >> 8) & 0xFF;
 	int numDrums = entry.data2 & 0xFF;
 	int numSfx = entry.data3;
+
+	entry.drums.reserve(numDrums);
+	entry.soundEffects.reserve(numSfx);
+	entry.instruments.reserve(numInstruments);
 
 	int currentOffset = BitConverter::ToInt32BE(codeData, ptr) + ptr;
 	for (int i = 0; i < numDrums; i++)
@@ -362,6 +358,9 @@ void ZAudio::ParseRawData()
 	sequenceTable = ParseAudioTable(codeData, gSequenceTableOffset);
 	sampleBankTable = ParseAudioTable(codeData, gSampleBankTableOffset);
 
+	fontIndices.reserve(sequenceTable.size());
+	sequences.reserve(sequenceTable.size());
+
 	// SEQEUNCE FONT TABLE PARSING
 	for (int i = 0; i < sequenceTable.size(); i++)
 	{
@@ -380,9 +379,9 @@ void ZAudio::ParseRawData()
 
 
 	// SAMPLE/FONT PARSING
-	for (int i = 0; i < soundFontTable.size(); i++)
+	for (auto& sft : soundFontTable)
 	{
-		ParseSoundFont(audioBankData, audioTableData, sampleBankTable, soundFontTable[i]);
+		ParseSoundFont(audioBankData, audioTableData, sampleBankTable, sft);
 	}
 
 	// SEQUENCE PARSING
