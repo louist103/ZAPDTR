@@ -604,30 +604,35 @@ void Arg_SetXMLMode(int& i, char* argv[])
 
 	while (xmlListPos < xmlListLen)
 	{
-		// Something got misaligned. Exit.
-		if (xmlListPos + 3 > xmlListLen)
-			break;
+		char* nextDelimiterPtr = strchr(&xmlList[xmlListPos], ',');
+		if (nextDelimiterPtr == nullptr)
+			nextDelimiterPtr = strchr(&xmlList[xmlListPos], 0);
+
+		if (nextDelimiterPtr == nullptr)
+			return;
+
+		size_t curModeLen = nextDelimiterPtr - &xmlList[xmlListPos];
+
 		// Audio Sound Font (asf)
-		if (strncmp(&xmlList[xmlListPos], "asf", 3) == 0)
+		if (strncmp(&xmlList[xmlListPos], "asf", curModeLen) == 0)
 			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::SoundFont;
 		// Audio Sample (asp)
-		else if (strncmp(&xmlList[xmlListPos], "asp", 3) == 0)
+		else if (strncmp(&xmlList[xmlListPos], "asp", curModeLen) == 0)
 			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::Sample;
 		// Audio Sequence (asq)
-		else if (strncmp(&xmlList[xmlListPos], "asq", 3) == 0)
+		else if (strncmp(&xmlList[xmlListPos], "asq", curModeLen) == 0)
 			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::Sequence;
 		
 		// We read the 3 chars for the type
-		xmlListPos += 3;
+		xmlListPos += curModeLen;
 				
 		if (xmlList[xmlListPos] != ',' && xmlList[xmlListPos] != 0)
 			HANDLE_WARNING(
 				WarningType::Always, "Invalid Argument",
 				"XML Extract mode not separated by ','. This may have unintended side effects.");
 		
-			xmlListPos++;
+		xmlListPos++;
 	}
-	
 }
 
 int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
