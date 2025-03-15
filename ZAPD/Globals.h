@@ -18,6 +18,14 @@ enum class VerbosityLevel
 	VERBOSITY_DEBUG
 };
 
+enum class XMLModeShift : int 
+{
+	SoundFont,
+	Sample,
+	Sequence,
+	// Add more as more assets support XML exporting.
+};
+
 class Globals
 {
 public:
@@ -43,6 +51,7 @@ public:
 	bool otrMode = true;
 	bool buildRawTexture = false;
 	bool onlyGenCustomOtr = false;
+	uint32_t xmlExtractModes;
 
 	ZRom* rom = nullptr;
 	std::vector<ZFile*> files;
