@@ -51,7 +51,7 @@ public:
 	bool otrMode = true;
 	bool buildRawTexture = false;
 	bool onlyGenCustomOtr = false;
-	uint32_t xmlExtractModes;
+	uint32_t xmlExtractModes = 0;
 
 	ZRom* rom = nullptr;
 	std::vector<ZFile*> files;
