@@ -119,6 +119,7 @@ void Arg_ForceUnaccountedStatic(int& i, char* argv[]);
 void Arg_SetFileListPath(int& i, char* argv[]);
 void Arg_SetBuildRawTexture(int& i, char* argv[]);
 void Arg_SetNoRomMode(int& i, char* argv[]);
+void Arg_SetXMLMode(int& i, char* argv[]);
 
 int main(int argc, char* argv[]);
 
@@ -433,6 +434,7 @@ void ParseArgs(int& argc, char* argv[])
 		{"-fl", &Arg_SetFileListPath},
 		{"-brt", &Arg_SetBuildRawTexture},
 		{"--norom", &Arg_SetNoRomMode},
+		{"-oxml", &Arg_SetXMLMode},
 	};
 
 	for (int32_t i = 2; i < argc; i++)
@@ -592,6 +594,45 @@ void Arg_SetBuildRawTexture([[maybe_unused]] int& i, [[maybe_unused]] char* argv
 void Arg_SetNoRomMode([[maybe_unused]] int& i, [[maybe_unused]] char* argv[])
 {
 	Globals::Instance->onlyGenCustomOtr = true;
+}
+
+void Arg_SetXMLMode(int& i, char* argv[])
+{
+	char* xmlList = argv[++i];
+	size_t xmlListPos = 0;
+	size_t xmlListLen = strlen(xmlList);
+
+	while (xmlListPos < xmlListLen)
+	{
+		char* nextDelimiterPtr = strchr(&xmlList[xmlListPos], ',');
+		if (nextDelimiterPtr == nullptr)
+			nextDelimiterPtr = strchr(&xmlList[xmlListPos], 0);
+
+		if (nextDelimiterPtr == nullptr)
+			return;
+
+		size_t curModeLen = nextDelimiterPtr - &xmlList[xmlListPos];
+
+		// Audio Sound Font (asf)
+		if (strncmp(&xmlList[xmlListPos], "asf", curModeLen) == 0)
+			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::SoundFont;
+		// Audio Sample (asp)
+		else if (strncmp(&xmlList[xmlListPos], "asp", curModeLen) == 0)
+			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::Sample;
+		// Audio Sequence (asq)
+		else if (strncmp(&xmlList[xmlListPos], "asq", curModeLen) == 0)
+			Globals::Instance->xmlExtractModes |= 1 << (int)XMLModeShift::Sequence;
+		
+		// We read the 3 chars for the type
+		xmlListPos += curModeLen;
+				
+		if (xmlList[xmlListPos] != ',' && xmlList[xmlListPos] != 0)
+			HANDLE_WARNING(
+				WarningType::Always, "Invalid Argument",
+				"XML Extract mode not separated by ','. This may have unintended side effects.");
+		
+		xmlListPos++;
+	}
 }
 
 int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
