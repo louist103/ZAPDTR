@@ -252,10 +252,11 @@ ZRom::ZRom(std::string romPath)
 		auto outData = std::vector<uint8_t>();
 		outData.resize(size);
 		memcpy(outData.data(), romData.data() + physStart, size);
-
-		if ((i >= 15 && i <= 20) || i == 22)
-		{
-			yarCompressed = true;
+		if (Globals::Instance->game == ZGame::MM_RETAIL) {
+			if ((i >= 15 && i <= 20) || i == 22)
+			{
+				yarCompressed = true;
+			}
 		}
 
 		if (compressed)
