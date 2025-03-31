@@ -501,3 +501,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}
 else()
 target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 endif()
+
+if (GAME_STR STREQUAL "MM")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GAME_MM)
+else()
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GAME_OOT)
+endif()

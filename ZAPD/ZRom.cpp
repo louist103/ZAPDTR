@@ -252,12 +252,14 @@ ZRom::ZRom(std::string romPath)
 		auto outData = std::vector<uint8_t>();
 		outData.resize(size);
 		memcpy(outData.data(), romData.data() + physStart, size);
-		if (Globals::Instance->game == ZGame::MM_RETAIL) {
-			if ((i >= 15 && i <= 20) || i == 22)
-			{
-				yarCompressed = true;
-			}
+		// An ifdef is used here because at this point the XMLs haven't been parsed, and we don't
+		// know if this is MM or OOT
+#ifdef GAME_MM
+		if ((i >= 15 && i <= 20) || i == 22)
+		{
+			yarCompressed = true;
 		}
+#endif
 
 		if (compressed)
 		{
