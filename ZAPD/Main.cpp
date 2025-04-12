@@ -135,7 +135,7 @@ ZFileMode ParseFileMode(const std::string& buildMode, ExporterSet* exporterSet);
 int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet);
 int ExtractFunc(int workerID, int fileListSize, std::string fileListItem, ZFileMode fileMode);
 
-volatile int numWorkersLeft = 0;
+std::atomic<unsigned int> numWorkersLeft = 0;
 
 extern const char gBuildHash[];
 
@@ -659,15 +659,15 @@ int HandleExtract(ZFileMode fileMode, ExporterSet* exporterSet)
 				bool parseSuccessful;
 
 				auto start = std::chrono::steady_clock::now();
-				int fileListSize = fileList.size();
-				Globals::Instance->singleThreaded = false;
+				size_t fileListSize = fileList.size();
+				Globals::Instance->singleThreaded = true;
 
-				for (int i = 0; i < fileListSize; i++)
+				for (size_t i = 0; i < fileListSize; i++)
 					Globals::Instance->workerData[i] = new FileWorker();
 
 				numWorkersLeft = fileListSize;
 
-				for (int i = 0; i < fileListSize; i++)
+				for (size_t i = 0; i < fileListSize; i++)
 				{
 					if (Globals::Instance->singleThreaded)
 					{
