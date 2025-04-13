@@ -122,11 +122,6 @@ set(Header_Files__Z64__ZRoom__Commands
 )
 source_group("Header Files\\Z64\\ZRoom\\Commands" FILES ${Header_Files__Z64__ZRoom__Commands})
 
-set(Resource_Files
-    "../../OTRExporter/CFG/SymbolMap_OoTMqDbg.txt"
-)
-source_group("Resource Files" FILES ${Resource_Files})
-
 set(Source_Files
     "CrashHandler.cpp"
     "Declaration.cpp"
@@ -251,7 +246,6 @@ set(ALL_FILES
     ${Header_Files__Z64__ZRoom}
     ${Header_Files__Z64__ZRoom__Commands}
     ${Header_Files__Utils}
-    ${Resource_Files}
     ${Source_Files}
     ${Source_Files__Libraries__libgfxd}
     ${Source_Files__Yaz0}
