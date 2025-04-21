@@ -284,15 +284,9 @@ endif()
 set(ROOT_NAMESPACE ZAPD)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-		set_target_properties(${PROJECT_NAME} PROPERTIES
-			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-		set_target_properties(${PROJECT_NAME} PROPERTIES
-			INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-		)
-	endif()
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+    )
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux|Darwin")
         set_target_properties(ZAPD PROPERTIES
 		OUTPUT_NAME "ZAPD.out"
@@ -304,17 +298,15 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 foreach(ZTarget ${PROJECT_NAME} ZAPD)
 	get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${ZTarget} PROPERTY MSVC_RUNTIME_LIBRARY)
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32" OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-		string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-			$<$<CONFIG:Debug>:
-				MultiThreadedDebug
-			>
-			$<$<CONFIG:Release>:
-				MultiThreaded
-			>
-			$<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
-		)
-	endif()
+    string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
+    	$<$<CONFIG:Debug>:
+    		MultiThreadedDebug
+    	>
+    	$<$<CONFIG:Release>:
+    		MultiThreaded
+    	>
+    	$<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
+    )
 	set_target_properties(${ZTarget} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 endforeach()
 endif()
@@ -322,21 +314,11 @@ endif()
 # Compile definitions
 ################################################################################
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-		target_compile_definitions(${PROJECT_NAME} PRIVATE
-			"_CRT_SECURE_NO_WARNINGS;"
-			"_MBCS"
-			STORMLIB_NO_AUTO_LINK
-		)
-	elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-		target_compile_definitions(${PROJECT_NAME} PRIVATE
-			"$<$<CONFIG:Debug>:"
-				"_CRT_SECURE_NO_WARNINGS"
-			">"
-			"_MBCS"
-			STORMLIB_NO_AUTO_LINK
-		)
-	endif()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+    	"_CRT_SECURE_NO_WARNINGS;"
+    	"_MBCS"
+    	STORMLIB_NO_AUTO_LINK
+    )
 endif()
 
 ################################################################################
@@ -357,62 +339,33 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	)
 
 if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /Od;
-                /RTC1
-            >
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /Od
-            >
-            $<$<CONFIG:Release>:
-                /O2;
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /PROFILE
-            >
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG:FULL
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /PROFILE
-            >
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG:FULL
-        )
-    endif()
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:
+            /Od;
+            /RTC1
+        >
+        $<$<CONFIG:Release>:
+            /O2;    
+            /Oi;
+            /Gy
+        >
+        /permissive-;
+        /sdl;
+        /W3;
+        ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
+        ${DEFAULT_CXX_EXCEPTION_HANDLING}
+    )
+
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:
+            /PROFILE
+        >
+        $<$<CONFIG:Release>:
+            /OPT:REF;
+            /OPT:ICF
+        >
+        /DEBUG:FULL
+    )
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|AppleClang")
@@ -450,15 +403,13 @@ add_dependencies(${PROJECT_NAME}
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-#	if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-		set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-		set(ADDITIONAL_LIBRARY_DEPENDENCIES
-			"-WHOLEARCHIVE:$<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter>"
-			"libultraship;"
-			storm
-			PNG::PNG
-		)
-#	endif()
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+    	"-WHOLEARCHIVE:$<TARGET_LINKER_FILE_DIR:OTRExporter>/$<TARGET_LINKER_FILE_NAME:OTRExporter>"
+    	"libultraship;"
+    	storm
+    	PNG::PNG
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
