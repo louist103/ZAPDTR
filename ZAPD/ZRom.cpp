@@ -38,7 +38,7 @@ namespace fs = std::filesystem;
 #define OOT_OFF_PAL_GC_DBG2 0x12F70
 #define OOT_OFF_PAL_GC 0x7170
 #define OOT_OFF_PAL_MQ 0x7170
-#define OOT_OFF_JP_GC_CE 007170
+#define OOT_OFF_JP_GC_CE 0x7170
 #define OOT_OFF_CN_IQUE 0xB7A0
 #define OOT_OFF_TW_IQUE 0xB240
 
@@ -127,7 +127,7 @@ ZRom::ZRom(std::string romPath)
 		break;
 	case OOT_NTSC_12:
 		version.version = "N64 NTSC 1.2";
-		version.listPath = "ntsc_oot.txt";
+		version.listPath = "ntsc_12_oot.txt";
 		version.offset = OOT_OFF_NTSC_12;
 		break;
 	case OOT_PAL_10:
@@ -252,11 +252,14 @@ ZRom::ZRom(std::string romPath)
 		auto outData = std::vector<uint8_t>();
 		outData.resize(size);
 		memcpy(outData.data(), romData.data() + physStart, size);
-
+		// An ifdef is used here because at this point the XMLs haven't been parsed, and we don't
+		// know if this is MM or OOT
+#ifdef GAME_MM
 		if ((i >= 15 && i <= 20) || i == 22)
 		{
 			yarCompressed = true;
 		}
+#endif
 
 		if (compressed)
 		{
